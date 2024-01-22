@@ -1,0 +1,68 @@
+# Xcode
+.DS_Store
+xcuserdata/
+
+# Swift Package Manager
+.Package.resolved
+.build/
+
+# CocoaPods
+Pods/
+*.lock
+Manifest.lock
+
+# Carthage
+Carthage/Checkouts
+Carthage/Build
+
+# AppCode
+.idea/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+fastlane/test_output/
+
+# Xcode
+*.xcuserstate
+project.xcworkspace/
+xcuserdata/
+
+# Swift
+*.swiftpm
+DerivedData/
+.build/
+.build-*
+
+# Package Manager
+Packages/
+Package.resolved
+
+# Playgrounds
+timeline.xctimeline
+playground.xcworkspace/
+
+# Swift Package Manager
+.build/
+
+# CocoaPods
+Pods/
+*.lock
+Manifest.lock
+DerivedData/
+Podfile.lock
+.bundle/
+
+# Carthage
+Carthage/Build/
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+
+# Tuist
+/*.xcodeproj
+/*.xcworkspace
+/.tuist-generated/
