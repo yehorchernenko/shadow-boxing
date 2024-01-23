@@ -10,10 +10,12 @@ import SwiftUI
 @main
 struct ShadowBoxingApp: App {
     @State private var immersionState: ImmersionStyle = .mixed
+    @State private var game = GameModel(state: .notStarted)
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
+                .environment(game)
         }
 
         ImmersiveSpace(id: "ImmersiveSpace") {

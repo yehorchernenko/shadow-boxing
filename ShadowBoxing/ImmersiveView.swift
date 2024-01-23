@@ -117,7 +117,6 @@ struct ImmersiveView: View {
 //        cloud.name = "CCloud\(cloudNumber)"
 //        cloudNumber += 1
 
-
         target.components[PhysicsBodyComponent.self] = PhysicsBodyComponent()
 //        target.scale = .init(repeating: 0.001)
 
