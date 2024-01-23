@@ -34,13 +34,21 @@ enum GameScreen {
 
 @Observable
 class GameModel {
-    var level: Level?
-    var state: GameState
+    private(set) var level: Level?
+    private(set) var state: GameState
+    // Used to handle multiple state changes in a single transaction.
+    // Note: every state change that needs to be displayed to the user should be done in a transaction.
+    private(set) var transactions: UUID = UUID()
 
     init(level: Level? = nil, state: GameState) {
         self.level = level
         self.state = state
     }
-}
 
+    func startGame(_ level: Level) {
+        self.level = level
+        self.state = .playing
+        self.transactions = UUID()
+    }
+}
 
