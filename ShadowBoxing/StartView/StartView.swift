@@ -10,7 +10,7 @@ struct StartView: View {
             HStack {
                 ForEach(levels) { level in
                     LevelCardView(level: level) { level in
-                        self.gameModel.startGame(level)
+                        self.gameModel.prepareGame(level)
                     }
                 }
             }

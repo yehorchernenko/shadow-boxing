@@ -19,6 +19,7 @@ struct Level: Identifiable {
 
 enum GameState {
     case notStarted
+    case preparing
     case playing
     case paused
     case gameOver
@@ -26,10 +27,25 @@ enum GameState {
 
 enum GameScreen {
     static func from(_ gameModel: GameModel) -> Self {
-        return start
+        switch gameModel.state {
+        case .notStarted:
+            return start
+        case .preparing:
+            return preparing
+        case .playing:
+            return score
+        case .paused:
+            // Replace
+            return score
+        case .gameOver:
+            // Replace
+            return score
+        }
     }
 
     case start
+    case preparing
+    case score
 }
 
 @Observable
@@ -45,8 +61,13 @@ class GameModel {
         self.state = state
     }
 
-    func startGame(_ level: Level) {
+    func prepareGame(_ level: Level) {
         self.level = level
+        self.state = .preparing
+        self.transactions = UUID()
+    }
+
+    func startGame() {
         self.state = .playing
         self.transactions = UUID()
     }

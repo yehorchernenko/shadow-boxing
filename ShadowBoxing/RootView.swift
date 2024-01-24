@@ -10,10 +10,13 @@ struct RootView: View {
             switch GameScreen.from(self.gameModel) {
             case .start:
                 StartView()
-                    .environment(self.gameModel)
+            case .preparing:
+                PrepareView()
+            case .score:
+                Text("Your score")
             }
-
         }
+        .environment(self.gameModel)
         .padding()
         .onChange(of: self.gameModel.transactions) {
             if case .playing = self.gameModel.state {
