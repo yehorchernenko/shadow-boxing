@@ -16,6 +16,13 @@ struct ShadowBoxingApp: App {
         WindowGroup {
             RootView()
                 .environment(gameModel)
+                .onAppear {
+                    guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
+                        return
+                    }
+
+                    windowScene.requestGeometryUpdate(.Vision(resizingRestrictions: UIWindowScene.ResizingRestrictions.none))
+                }
         }
 
         ImmersiveSpace(id: "ImmersiveSpace") {
