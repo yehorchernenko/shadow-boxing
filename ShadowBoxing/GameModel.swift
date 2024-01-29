@@ -71,5 +71,11 @@ class GameModel {
         self.state = .playing
         self.transactions = UUID()
     }
+
+    func finishGame() {
+        self.level = nil
+        self.state = .notStarted
+        self.transactions = UUID()
+    }
 }
 

@@ -10,10 +10,18 @@ struct RootView: View {
             switch GameScreen.from(self.gameModel) {
             case .start:
                 StartView()
+                    .resizableWindow(to: CGSize(width: 800, height: 600))
             case .preparing:
                 PrepareView()
+                    .resizableWindow(to: CGSize(width: 800, height: 600))
             case .score:
-                Text("Your score")
+                VStack {
+                    Text("Your score")
+                    Button("Finish") {
+                        self.gameModel.finishGame()
+                    }
+                }
+                    .resizableWindow(to: CGSize(width: 200, height: 200))
             }
         }
         .environment(self.gameModel)

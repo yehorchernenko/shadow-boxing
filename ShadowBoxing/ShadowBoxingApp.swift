@@ -13,7 +13,7 @@ struct ShadowBoxingApp: App {
     @State private var gameModel = GameModel(state: .notStarted)
 
     var body: some Scene {
-        WindowGroup {
+        WindowGroup(id: "mainWindow") {
             RootView()
                 .environment(gameModel)
                 .onAppear {
