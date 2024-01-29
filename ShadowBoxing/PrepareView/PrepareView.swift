@@ -5,6 +5,7 @@ struct PrepareView: View {
 
     var body: some View {
         CountdownView()
+            .frame(width: 300, height: 300)
             .environment(self.gameModel)
     }
 }

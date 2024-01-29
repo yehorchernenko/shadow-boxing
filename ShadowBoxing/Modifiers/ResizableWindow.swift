@@ -1,6 +1,7 @@
 import SwiftUI
 
 // Define a custom view modifier
+// NOT USED
 struct ResizableWindowModifier: ViewModifier {
     @State private var resizingContentOpacity = 0.0
     var size: CGSize
