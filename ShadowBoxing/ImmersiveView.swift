@@ -47,17 +47,13 @@ struct ImmersiveView: View {
         RealityView { content, attachments in
             content.add(spaceOrigin)
             if let scoreView = attachments.entity(for: "score") {
-                scoreView.position = simd_float3(-1.5,2,-2)
+                scoreView.position = simd_float3(-0.5,1,-1)
+                scoreView.components.set(BillboardComponent())
                 spaceOrigin.addChild(scoreView)
             }
         } attachments: {
             Attachment(id: "score") {
-                VStack {
-                    Text("Your score")
-                        .font(.system(size: 60))
-                        .padding(40)
-                        .glassBackgroundEffect()
-                }
+                InGameView()
             }
         }
         .onAppear {

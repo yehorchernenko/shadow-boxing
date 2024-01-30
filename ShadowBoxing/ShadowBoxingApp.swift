@@ -44,4 +44,9 @@ struct ShadowBoxingApp: App {
         }
         .immersionStyle(selection: $immersionState, in: .mixed)
     }
+
+    init() {
+        BillboardSystem.registerSystem()
+        BillboardComponent.registerComponent()
+    }
 }
