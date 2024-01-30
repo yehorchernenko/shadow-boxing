@@ -12,26 +12,12 @@ struct RootView: View {
                 StartView()
             case .preparing:
                 PrepareView()
-            case .score:
-                InGameView()
+            case .emptyView:
+                EmptyView()
             }
         }
         .environment(self.gameModel)
         .padding()
-        .onChange(of: self.gameModel.transactions) {
-            if case .playing = self.gameModel.state {
-                Task { @MainActor in
-                    switch await self.openImmersiveSpace(id: "ImmersiveSpace") {
-                    case .opened:
-                        break
-                    case .error, .userCancelled:
-                        fallthrough
-                    @unknown default:
-                        break
-                    }
-                }
-            }
-        }
     }
 }
 

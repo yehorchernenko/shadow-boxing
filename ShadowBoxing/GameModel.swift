@@ -33,19 +33,17 @@ enum GameScreen {
         case .preparing:
             return preparing
         case .playing:
-            return score
+            return emptyView
         case .paused:
-            // Replace
-            return score
+            return emptyView
         case .gameOver:
-            // Replace
-            return score
+            return emptyView
         }
     }
 
     case start
     case preparing
-    case score
+    case emptyView
 }
 
 @Observable
@@ -55,6 +53,15 @@ class GameModel {
     // Used to handle multiple state changes in a single transaction.
     // Note: every state change that needs to be displayed to the user should be done in a transaction.
     private(set) var transactions: UUID = UUID()
+
+    var isImmersed: Bool {
+        switch self.state {
+        case .notStarted, .preparing, .paused, .gameOver:
+            return false
+        case .playing:
+            return true
+        }
+    }
 
     init(level: Level? = nil, state: GameState) {
         self.level = level

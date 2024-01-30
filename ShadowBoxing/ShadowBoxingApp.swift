@@ -7,28 +7,41 @@
 
 import SwiftUI
 
+fileprivate let kMainWindowID = "MainWindow"
+fileprivate let kImmersiveSpaceID = "ImmersiveSpace"
+
 @main
 struct ShadowBoxingApp: App {
+    @Environment(\.openImmersiveSpace) private var openImmersiveSpace
+    @Environment(\.dismissWindow) private var dismissWindow
     @State private var immersionState: ImmersionStyle = .mixed
     @State private var gameModel = GameModel(state: .notStarted)
 
     var body: some Scene {
-        WindowGroup(id: "mainWindow") {
+        WindowGroup(id: kMainWindowID) {
             RootView()
-                .environment(gameModel)
-                .onAppear {
-                    guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
-                        return
-                    }
+                .environment(self.gameModel)
+                .onChange(of: self.gameModel.isImmersed) { _, showImmersive in
+                    guard showImmersive else { return }
 
-                    windowScene.requestGeometryUpdate(.Vision(resizingRestrictions: UIWindowScene.ResizingRestrictions.none))
+                    Task { @MainActor in
+                        switch await self.openImmersiveSpace(id: kImmersiveSpaceID) {
+                        case .opened:
+                            self.dismissWindow(id: kMainWindowID)
+                        case .error, .userCancelled:
+                            fallthrough
+                        @unknown default:
+                            break
+                        }
+                    }
                 }
         }
         .windowResizability(.contentSize)
 
-        ImmersiveSpace(id: "ImmersiveSpace") {
+        ImmersiveSpace(id: kImmersiveSpaceID) {
             ImmersiveView()
+                .environment(self.gameModel)
         }
-//        .immersionStyle(selection: $immersionState, in: .mixed)
+        .immersionStyle(selection: $immersionState, in: .mixed)
     }
 }

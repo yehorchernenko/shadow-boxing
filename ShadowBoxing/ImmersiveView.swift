@@ -44,8 +44,21 @@ struct ImmersiveView: View {
     @State private var timer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
 
     var body: some View {
-        RealityView { content in
+        RealityView { content, attachments in
             content.add(spaceOrigin)
+            if let scoreView = attachments.entity(for: "score") {
+                scoreView.position = simd_float3(-1.5,2,-2)
+                spaceOrigin.addChild(scoreView)
+            }
+        } attachments: {
+            Attachment(id: "score") {
+                VStack {
+                    Text("Your score")
+                        .font(.system(size: 60))
+                        .padding(40)
+                        .glassBackgroundEffect()
+                }
+            }
         }
         .onAppear {
             generateTargetMovementAnimations()

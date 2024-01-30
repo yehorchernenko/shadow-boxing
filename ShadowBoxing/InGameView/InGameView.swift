@@ -7,7 +7,6 @@ struct InGameView: View {
 
     var body: some View {
         VStack {
-            Text("Your score")
             Button("Finish") {
                 self.gameModel.finishGame()
             }
