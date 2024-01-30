@@ -50,11 +50,15 @@ enum GameScreen {
 class GameModel {
     private(set) var level: Level?
     private(set) var state: GameState
+    /// Should be updated after `shouldShowImmersiveView` changes
+    private(set) var immersiveViewShown = false
     // Used to handle multiple state changes in a single transaction.
     // Note: every state change that needs to be displayed to the user should be done in a transaction.
     private(set) var transactions: UUID = UUID()
 
-    var isImmersed: Bool {
+    /// Depends on the game state.
+    /// For the fact the immersive is shown responsible `immersiveViewShown` property
+    var shouldShowImmersiveView: Bool {
         switch self.state {
         case .notStarted, .preparing, .paused, .gameOver:
             return false
@@ -82,6 +86,11 @@ class GameModel {
     func finishGame() {
         self.level = nil
         self.state = .notStarted
+        self.transactions = UUID()
+    }
+
+    func immersiveViewVisibility(isShown: Bool) {
+        self.immersiveViewShown = isShown
         self.transactions = UUID()
     }
 }
