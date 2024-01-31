@@ -42,12 +42,25 @@ var targetMovementAnimations = [AnimationResource]()
 fileprivate let kScoreAttachmentID = "ScoreViewAttachment"
 
 struct ImmersiveView: View {
-
     @State private var timer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
+
+    @State private var bodyEntity: Entity = {
+        let head = AnchorEntity(.head)
+        var materials = [SimpleMaterial]()
+        #if targetEnvironment(simulator)
+            head.anchoring.trackingMode = .once
+            materials = [SimpleMaterial(color: .green, isMetallic: false)]
+        #endif
+        let bodyMesh = MeshResource.generateSphere(radius: 0.7)
+        let bodyModel = ModelEntity(mesh: bodyMesh, materials: materials)
+        head.addChild(bodyModel)
+        return head
+    }()
 
     var body: some View {
         RealityView { content, attachments in
             content.add(spaceOrigin)
+            content.add(bodyEntity)
             self.setupScoreAttachment(attachments)
         } attachments: {
             Attachment(id: kScoreAttachmentID) {
