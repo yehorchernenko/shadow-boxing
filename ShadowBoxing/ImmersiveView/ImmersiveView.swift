@@ -30,7 +30,7 @@ let targetPaths: [(Double, Double, Double)] = [
 struct TargetSpawnParameters {
     static var deltaX = 0.02
     static var deltaY = -0.12
-    static var deltaZ = 12.0
+    static var deltaZ = 7.0
 
     static var speed = 11.73
 }
@@ -39,6 +39,8 @@ let spaceOrigin = Entity()
 var targetPathsIndex = 0
 var targetMovementAnimations = [AnimationResource]()
 
+fileprivate let kScoreAttachmentID = "ScoreViewAttachment"
+
 struct ImmersiveView: View {
 
     @State private var timer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
@@ -46,18 +48,14 @@ struct ImmersiveView: View {
     var body: some View {
         RealityView { content, attachments in
             content.add(spaceOrigin)
-            if let scoreView = attachments.entity(for: "score") {
-                scoreView.position = simd_float3(-0.5,1,-1)
-                scoreView.components.set(BillboardComponent())
-                spaceOrigin.addChild(scoreView)
-            }
+            self.setupScoreAttachment(attachments)
         } attachments: {
-            Attachment(id: "score") {
+            Attachment(id: kScoreAttachmentID) {
                 InGameView()
             }
         }
         .onAppear {
-            generateTargetMovementAnimations()
+            self.generateTargetMovementAnimations()
         }
         .onReceive(timer) { _ in
             Task { @MainActor in
@@ -71,6 +69,14 @@ struct ImmersiveView: View {
 
                 }
             }
+        }
+    }
+
+    private func setupScoreAttachment(_ attachments: RealityViewAttachments) {
+        if let scoreView = attachments.entity(for: kScoreAttachmentID) {
+            scoreView.position = simd_float3(-0.5,1,-1)
+            scoreView.components.set(BillboardComponent())
+            spaceOrigin.addChild(scoreView)
         }
     }
 
