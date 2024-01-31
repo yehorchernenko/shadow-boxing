@@ -47,11 +47,14 @@ struct ImmersiveView: View {
     @State private var bodyEntity: Entity = {
         let head = AnchorEntity(.head)
         var materials = [SimpleMaterial]()
+        head.anchoring.trackingMode = .continuous
+
         #if targetEnvironment(simulator)
-            head.anchoring.trackingMode = .once
+            head.position = simd_float3(0, 0, -1)
             materials = [SimpleMaterial(color: .green, isMetallic: false)]
         #endif
-        let bodyMesh = MeshResource.generateSphere(radius: 0.7)
+        
+        let bodyMesh = MeshResource.generateSphere(radius: 0.2)
         let bodyModel = ModelEntity(mesh: bodyMesh, materials: materials)
         head.addChild(bodyModel)
         return head
