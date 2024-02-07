@@ -72,17 +72,9 @@ struct ImmersiveView: View {
             content.add(bodyEntity)
             self.setupScoreAttachment(attachments)
 
-            self.collisionSubscription = content.subscribe(to: CollisionEvents.Began.self) { ce in
+            self.collisionSubscription = content.subscribe(to: CollisionEvents.Began.self, self.handleCollision(event:))
 
-                print("\(ce.entityA.name) \(ce.entityB.name)")
-            }
-
-            self.sceneSubscription = content.subscribe(to: SceneEvents.Update.self) { event in
-                guard let devicePosition = self.worldTrackingProvider
-                    .queryDeviceAnchor(atTimestamp: Date.now.timeIntervalSince1970) else { return }
-                self.bodyEntity.transform = Transform(matrix: devicePosition.originFromAnchorTransform)
-
-            }
+            self.sceneSubscription = content.subscribe(to: SceneEvents.Update.self, self.handleSceneUpdate(event:))
 
             Task {
                 try await self.arSession.run([worldTrackingProvider])
@@ -117,6 +109,17 @@ struct ImmersiveView: View {
             scoreView.components.set(BillboardComponent())
             spaceOrigin.addChild(scoreView)
         }
+    }
+
+    private func handleCollision(event: CollisionEvents.Began) {
+        print("\(event.entityA.name) \(event.entityB.name)")
+    }
+
+    private func handleSceneUpdate(event: SceneEvents.Update) {
+        // Update body position. Set to device position
+        guard let devicePosition = self.worldTrackingProvider
+            .queryDeviceAnchor(atTimestamp: Date.now.timeIntervalSince1970) else { return }
+        self.bodyEntity.transform = Transform(matrix: devicePosition.originFromAnchorTransform)
     }
 
     @MainActor
