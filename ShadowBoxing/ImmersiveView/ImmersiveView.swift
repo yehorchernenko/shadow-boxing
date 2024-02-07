@@ -8,6 +8,7 @@
 import SwiftUI
 import RealityKit
 import RealityKitContent
+import ARKit
 /// A hand-picked selection of random starting parameters for the motion of the clouds.
 let targetPaths: [(Double, Double, Double)] = [
     (x: 1.757_231_498_429_01, y: 1.911_673_694_896_59, z: -8.094_368_331_589_704),
@@ -42,22 +43,27 @@ var targetMovementAnimations = [AnimationResource]()
 fileprivate let kScoreAttachmentID = "ScoreViewAttachment"
 
 struct ImmersiveView: View {
+    private let arSession = ARKitSession()
+    private let worldTrackingProvider = WorldTrackingProvider()
+    @State private var collisionSubscription: EventSubscription?
+    @State private var sceneSubscription: EventSubscription?
     @State private var timer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
 
     @State private var bodyEntity: Entity = {
-        let head = AnchorEntity(.head)
-        var materials = [SimpleMaterial]()
-        head.anchoring.trackingMode = .continuous
+        let bodyMesh = MeshResource.generateSphere(radius: 0.2)
+        let bodyModel = ModelEntity(mesh: bodyMesh)
+        bodyModel.name = "Body"
 
         #if targetEnvironment(simulator)
-            head.position = simd_float3(0, 0, -1)
-            materials = [SimpleMaterial(color: .green, isMetallic: false)]
+            // Collision shape a bit bigger for debug purpose
+            let collisionShape = ShapeResource.generateSphere(radius: 0.22)
+            let collisionComponent = CollisionComponent(shapes: [collisionShape])
+            bodyModel.components.set(collisionComponent)
+        #else
+            bodyModel.generateCollisionShapes(recursive: false)
         #endif
-        
-        let bodyMesh = MeshResource.generateSphere(radius: 0.2)
-        let bodyModel = ModelEntity(mesh: bodyMesh, materials: materials)
-        head.addChild(bodyModel)
-        return head
+
+        return bodyModel
     }()
 
     var body: some View {
@@ -65,6 +71,23 @@ struct ImmersiveView: View {
             content.add(spaceOrigin)
             content.add(bodyEntity)
             self.setupScoreAttachment(attachments)
+
+            self.collisionSubscription = content.subscribe(to: CollisionEvents.Began.self) { ce in
+
+                print("\(ce.entityA.name) \(ce.entityB.name)")
+            }
+
+            self.sceneSubscription = content.subscribe(to: SceneEvents.Update.self) { event in
+                guard let devicePosition = self.worldTrackingProvider
+                    .queryDeviceAnchor(atTimestamp: Date.now.timeIntervalSince1970) else { return }
+                self.bodyEntity.transform = Transform(matrix: devicePosition.originFromAnchorTransform)
+
+            }
+
+            Task {
+                try await self.arSession.run([worldTrackingProvider])
+            }
+
         } attachments: {
             Attachment(id: kScoreAttachmentID) {
                 InGameView()
@@ -129,29 +152,14 @@ struct ImmersiveView: View {
 //        else { fatalError("No target template") }
 
 //        cloud.generateCollisionShapes(recursive: true)
-        var mat = PhysicallyBasedMaterial()
-        mat.baseColor = .init(tint: .black)
-        mat.sheen = .init(tint: .black)
-        mat.emissiveColor = .init(color: .blue)
-        mat.emissiveIntensity = 2
 
-        let mesh: MeshResource = .generateBox(width: 0.5,
-                                             height: 0.5,
-                                              depth: 0.5,
-                                       cornerRadius: 0.02,
-                                         splitFaces: true)
+        let mesh = MeshResource.generateBox(width: 0.5, height: 0.5, depth: 0.5)
+        let mat = SimpleMaterial(color: .systemPink, isMetallic: false)
 
         let target = ModelEntity(mesh: mesh, materials: [mat])
-
-
-        target.name = "CCloud\(Int.random(in: 0...1000))"
-//        cloud.name = "CCloud\(cloudNumber)"
-//        cloudNumber += 1
-
-        target.components[PhysicsBodyComponent.self] = PhysicsBodyComponent()
-//        target.scale = .init(repeating: 0.001)
-
+        target.name = "Target"
         target.position = simd_float(start.vector + .init(x: 0, y: 0, z: -0.7))
+        target.generateCollisionShapes(recursive: false)
 
         let animation = targetMovementAnimations[targetPathsIndex]
 
