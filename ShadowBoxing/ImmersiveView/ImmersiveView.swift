@@ -41,9 +41,12 @@ struct TargetSpawnParameters {
 let spaceOrigin = Entity()
 var targetPathsIndex = 0
 var targetMovementAnimations = [AnimationResource]()
+var positionNoises = [SIMD3<Float>]()
+var entitiesCount = 0
 
 fileprivate let kScoreAttachmentID = "ScoreViewAttachment"
 fileprivate let kBodyEntityName = "Body"
+fileprivate let kTargetEntityName = "Target"
 
 struct ImmersiveView: View {
     private let arSession = ARKitSession()
@@ -53,13 +56,13 @@ struct ImmersiveView: View {
     @State private var timer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
 
     @State private var bodyEntity: Entity = {
-        let bodyMesh = MeshResource.generateSphere(radius: 0.2)
+        let bodyMesh = MeshResource.generateSphere(radius: 0.3)
         let bodyModel = ModelEntity(mesh: bodyMesh, materials: [SimpleMaterial(color: .blue, isMetallic: false)])
         bodyModel.name = kBodyEntityName
 
         #if targetEnvironment(simulator)
             // Collision shape a bit bigger for debug purpose
-            let collisionShape = ShapeResource.generateSphere(radius: 0.22)
+            let collisionShape = ShapeResource.generateSphere(radius: 0.3)
             let collisionComponent = CollisionComponent(shapes: [collisionShape])
             bodyModel.components.set(collisionComponent)
         #else
@@ -115,13 +118,34 @@ struct ImmersiveView: View {
     }
 
     private func handleCollision(event: CollisionEvents.Began) {
-        if event.entityA.name == kBodyEntityName || event.entityB.name == kBodyEntityName {
+        if event.entityA.isBody || event.entityB.isBody {
             print("\(event.entityA.name) \(event.entityB.name)")
             bodyEntity.playAudio(Sounds.Punch.missed.audioResource)
+
+            // Remove targets after collisions
+            if event.entityA.isTarget {
+                event.entityA.removeFromParent()
+            } else if event.entityB.isTarget {
+                event.entityB.removeFromParent()
+            }
         }
     }
 
     private func handleSceneUpdate(event: SceneEvents.Update) {
+        // Movement towards user body (device position)
+        for movingEntity in spaceOrigin.children where movingEntity.name.contains(kTargetEntityName) {
+//            let currentDistance = simd_distance(movingEntity.position, bodyEntity.position)
+//            print(currentDistance)
+            let index = Int(movingEntity.name.split(separator: "_").last!)!
+            // Noise required to simulate punches that goes to different parts of the body
+            let positionNoise = positionNoises[index]
+
+            let toEntityPosition = self.bodyEntity.position + positionNoise
+            let directionVector = normalize(toEntityPosition - movingEntity.position)
+            let speed: Float = 0.01 // Adjust speed as needed
+            movingEntity.position += directionVector * speed
+
+        }
         // Update body position. Set to device position
         guard let devicePosition = self.worldTrackingProvider
             .queryDeviceAnchor(atTimestamp: Date.now.timeIntervalSince1970) else { return }
@@ -162,17 +186,23 @@ struct ImmersiveView: View {
 
 //        cloud.generateCollisionShapes(recursive: true)
 
-        let mesh = MeshResource.generateBox(width: 0.5, height: 0.5, depth: 0.5)
+        let mesh = MeshResource.generateSphere(radius: 0.3)
         let mat = SimpleMaterial(color: .systemPink, isMetallic: false)
 
         let target = ModelEntity(mesh: mesh, materials: [mat])
-        target.name = "Target"
+        target.name = "\(kTargetEntityName)_\(entitiesCount)"
         target.position = simd_float(start.vector + .init(x: 0, y: 0, z: -0.7))
         target.generateCollisionShapes(recursive: false)
-
-        let animation = targetMovementAnimations[targetPathsIndex]
-
-        target.playAnimation(animation, transitionDuration: 1.0, startsPaused: false)
+        let positionNoise = SIMD3<Float>(
+            .random(in: -0.5...0.5),
+            .random(in: -0.5...0.5),
+            .random(in: -0.5...0.5)
+        )
+        positionNoises.append(positionNoise)
+        entitiesCount += 1
+//        let animation = targetMovementAnimations[targetPathsIndex]
+//
+//        target.playAnimation(animation, transitionDuration: 1.0, startsPaused: false)
 
         spaceOrigin.addChild(target)
 
@@ -213,4 +243,14 @@ struct ImmersiveView: View {
 #Preview {
     ImmersiveView()
         .previewLayout(.sizeThatFits)
+}
+
+extension Entity {
+    var isTarget: Bool {
+        name.contains(kTargetEntityName)
+    }
+
+    var isBody: Bool {
+        name.contains(kBodyEntityName)
+    }
 }
