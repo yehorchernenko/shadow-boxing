@@ -56,18 +56,14 @@ struct ImmersiveView: View {
     @State private var timer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
 
     @State private var bodyEntity: Entity = {
-        let bodyMesh = MeshResource.generateSphere(radius: 0.3)
+        let bodyMesh = MeshResource.generateBox(size: 0.5)
         let bodyModel = ModelEntity(mesh: bodyMesh, materials: [SimpleMaterial(color: .blue, isMetallic: false)])
         bodyModel.name = kBodyEntityName
 
-        #if targetEnvironment(simulator)
-            // Collision shape a bit bigger for debug purpose
-            let collisionShape = ShapeResource.generateSphere(radius: 0.3)
-            let collisionComponent = CollisionComponent(shapes: [collisionShape])
-            bodyModel.components.set(collisionComponent)
-        #else
-            bodyModel.generateCollisionShapes(recursive: false)
-        #endif
+        let collisionShape = ShapeResource.generateBox(width: 0.5, height: 0.5, depth: 0.5)
+        let collisionComponent = CollisionComponent(shapes: [collisionShape])
+        bodyModel.components.set(collisionComponent)
+
 
         return bodyModel
     }()
@@ -192,11 +188,17 @@ struct ImmersiveView: View {
         let target = ModelEntity(mesh: mesh, materials: [mat])
         target.name = "\(kTargetEntityName)_\(entitiesCount)"
         target.position = simd_float(start.vector + .init(x: 0, y: 0, z: -0.7))
-        target.generateCollisionShapes(recursive: false)
+
+        let collisionShape = ShapeResource.generateSphere(radius: 0.3)
+        let collisionComponent = CollisionComponent(shapes: [collisionShape])
+        target.components.set(collisionComponent)
+
+        /// Noise required to simulate punches that goes to different parts of the body
+        /// The of noise is a bit less than body size, to ensure that the punch will hit the body
         let positionNoise = SIMD3<Float>(
-            .random(in: -0.5...0.5),
-            .random(in: -0.5...0.5),
-            .random(in: -0.5...0.5)
+            .random(in: -0.45...0.45),
+            .random(in: -0.45...0.45),
+            .random(in: -0.45...0.45)
         )
         positionNoises.append(positionNoise)
         entitiesCount += 1
