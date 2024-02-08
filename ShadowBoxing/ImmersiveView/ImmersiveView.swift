@@ -9,6 +9,8 @@ import SwiftUI
 import RealityKit
 import RealityKitContent
 import ARKit
+import AVFoundation
+
 /// A hand-picked selection of random starting parameters for the motion of the clouds.
 let targetPaths: [(Double, Double, Double)] = [
     (x: 1.757_231_498_429_01, y: 1.911_673_694_896_59, z: -8.094_368_331_589_704),
@@ -41,6 +43,7 @@ var targetPathsIndex = 0
 var targetMovementAnimations = [AnimationResource]()
 
 fileprivate let kScoreAttachmentID = "ScoreViewAttachment"
+fileprivate let kBodyEntityName = "Body"
 
 struct ImmersiveView: View {
     private let arSession = ARKitSession()
@@ -51,8 +54,8 @@ struct ImmersiveView: View {
 
     @State private var bodyEntity: Entity = {
         let bodyMesh = MeshResource.generateSphere(radius: 0.2)
-        let bodyModel = ModelEntity(mesh: bodyMesh)
-        bodyModel.name = "Body"
+        let bodyModel = ModelEntity(mesh: bodyMesh, materials: [SimpleMaterial(color: .blue, isMetallic: false)])
+        bodyModel.name = kBodyEntityName
 
         #if targetEnvironment(simulator)
             // Collision shape a bit bigger for debug purpose
@@ -112,7 +115,10 @@ struct ImmersiveView: View {
     }
 
     private func handleCollision(event: CollisionEvents.Began) {
-        print("\(event.entityA.name) \(event.entityB.name)")
+        if event.entityA.name == kBodyEntityName || event.entityB.name == kBodyEntityName {
+            print("\(event.entityA.name) \(event.entityB.name)")
+            bodyEntity.playAudio(Sounds.Punch.missed.audioResource)
+        }
     }
 
     private func handleSceneUpdate(event: SceneEvents.Update) {
