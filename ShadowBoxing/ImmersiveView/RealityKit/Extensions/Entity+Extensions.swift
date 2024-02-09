@@ -12,3 +12,13 @@ public extension Entity {
         set { setPosition(newValue, relativeTo: nil) }
     }
 }
+
+extension Entity {
+    var isTarget: Bool {
+        self.name.contains(ImmersiveConstants.kTargetEntityName)
+    }
+
+    var isBody: Bool {
+        self.name.contains(ImmersiveConstants.kBodyEntityName)
+    }
+}

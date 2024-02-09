@@ -11,6 +11,7 @@ struct StartView: View {
                 ForEach(levels) { level in
                     LevelCardView(level: level) { level in
                         self.gameModel.prepareGame(level)
+                        self.gameModel.startGame()
                     }
                 }
             }

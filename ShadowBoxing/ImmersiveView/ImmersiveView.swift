@@ -38,32 +38,31 @@ struct TargetSpawnParameters {
     static var speed = 11.73
 }
 
-let spaceOrigin = Entity()
 var targetPathsIndex = 0
 var targetMovementAnimations = [AnimationResource]()
 var positionNoises = [SIMD3<Float>]()
 var entitiesCount = 0
 
 fileprivate let kScoreAttachmentID = "ScoreViewAttachment"
-fileprivate let kBodyEntityName = "Body"
-fileprivate let kTargetEntityName = "Target"
+
 
 struct ImmersiveView: View {
     private let arSession = ARKitSession()
     private let worldTrackingProvider = WorldTrackingProvider()
     @State private var collisionSubscription: EventSubscription?
     @State private var sceneSubscription: EventSubscription?
+    @State private var sceneSubscription2: EventSubscription?
     @State private var timer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
 
+    @State var spaceOrigin = Entity()
     @State private var bodyEntity: Entity = {
         let bodyMesh = MeshResource.generateBox(size: 0.5)
         let bodyModel = ModelEntity(mesh: bodyMesh, materials: [SimpleMaterial(color: .blue, isMetallic: false)])
-        bodyModel.name = kBodyEntityName
+        bodyModel.name = ImmersiveConstants.kBodyEntityName
 
         let collisionShape = ShapeResource.generateBox(width: 0.5, height: 0.5, depth: 0.5)
         let collisionComponent = CollisionComponent(shapes: [collisionShape])
         bodyModel.components.set(collisionComponent)
-
 
         return bodyModel
     }()
@@ -86,9 +85,6 @@ struct ImmersiveView: View {
             Attachment(id: kScoreAttachmentID) {
                 InGameView()
             }
-        }
-        .onAppear {
-            self.generateTargetMovementAnimations()
         }
         .onReceive(timer) { _ in
             Task { @MainActor in
@@ -119,29 +115,18 @@ struct ImmersiveView: View {
             bodyEntity.playAudio(Sounds.Punch.missed.audioResource)
 
             // Remove targets after collisions
-            if event.entityA.isTarget {
-                event.entityA.removeFromParent()
-            } else if event.entityB.isTarget {
-                event.entityB.removeFromParent()
-            }
+            [event.entityA, event.entityB]
+                .compactMap { $0 as? TargetEntity }
+                .forEach { $0.removeFromParent() }
         }
     }
 
     private func handleSceneUpdate(event: SceneEvents.Update) {
-        // Movement towards user body (device position)
-        for movingEntity in spaceOrigin.children where movingEntity.name.contains(kTargetEntityName) {
-//            let currentDistance = simd_distance(movingEntity.position, bodyEntity.position)
-//            print(currentDistance)
-            let index = Int(movingEntity.name.split(separator: "_").last!)!
-            // Noise required to simulate punches that goes to different parts of the body
-            let positionNoise = positionNoises[index]
-
-            let toEntityPosition = self.bodyEntity.position + positionNoise
-            let directionVector = normalize(toEntityPosition - movingEntity.position)
-            let speed: Float = 0.01 // Adjust speed as needed
-            movingEntity.position += directionVector * speed
-
+        // Movement targets towards user body (device position)
+        for movingEntity in spaceOrigin.children.compactMap({ $0 as? TargetEntity }) {
+            movingEntity.moveWithNoiseTo(self.bodyEntity.position)
         }
+
         // Update body position. Set to device position
         guard let devicePosition = self.worldTrackingProvider
             .queryDeviceAnchor(atTimestamp: Date.now.timeIntervalSince1970) else { return }
@@ -176,83 +161,16 @@ struct ImmersiveView: View {
 
     @MainActor
     func spawnTargetExact(start: Point3D, end: Point3D, speed: Double) async throws -> Entity {
-        // Add the initial RealityKit content
-//        guard let scene = try? await Entity(named: "Immersive", in: realityKitContentBundle)
-//        else { fatalError("No target template") }
-
-//        cloud.generateCollisionShapes(recursive: true)
-
-        let mesh = MeshResource.generateSphere(radius: 0.3)
-        let mat = SimpleMaterial(color: .systemPink, isMetallic: false)
-
-        let target = ModelEntity(mesh: mesh, materials: [mat])
-        target.name = "\(kTargetEntityName)_\(entitiesCount)"
+        let target = TargetEntity()
         target.position = simd_float(start.vector + .init(x: 0, y: 0, z: -0.7))
 
-        let collisionShape = ShapeResource.generateSphere(radius: 0.3)
-        let collisionComponent = CollisionComponent(shapes: [collisionShape])
-        target.components.set(collisionComponent)
-
-        /// Noise required to simulate punches that goes to different parts of the body
-        /// The of noise is a bit less than body size, to ensure that the punch will hit the body
-        let positionNoise = SIMD3<Float>(
-            .random(in: -0.45...0.45),
-            .random(in: -0.45...0.45),
-            .random(in: -0.45...0.45)
-        )
-        positionNoises.append(positionNoise)
-        entitiesCount += 1
-//        let animation = targetMovementAnimations[targetPathsIndex]
-//
-//        target.playAnimation(animation, transitionDuration: 1.0, startsPaused: false)
-
-        spaceOrigin.addChild(target)
+        self.spaceOrigin.addChild(target)
 
         return target
-    }
-
-    /// Preload animation assets.
-    func generateTargetMovementAnimations() {
-        for index in (0..<targetPaths.count) {
-            let start = Point3D(
-                x: targetPaths[index].0,
-                y: targetPaths[index].1,
-                z: targetPaths[index].2
-            )
-            let end = Point3D(
-                x: start.x + TargetSpawnParameters.deltaX,
-                y: start.y + TargetSpawnParameters.deltaY,
-                z: start.z + TargetSpawnParameters.deltaZ
-            )
-            let speed = TargetSpawnParameters.speed
-
-            let line = FromToByAnimation<Transform>(
-                name: "line",
-                from: Transform(translation: simd_float(start.vector)),
-                to: Transform(translation: simd_float(end.vector)),
-                duration: speed,
-                bindTarget: .transform
-            )
-
-            let animation = try! AnimationResource
-                .generate(with: line)
-
-            targetMovementAnimations.append(animation)
-        }
     }
 }
 
 #Preview {
     ImmersiveView()
         .previewLayout(.sizeThatFits)
-}
-
-extension Entity {
-    var isTarget: Bool {
-        name.contains(kTargetEntityName)
-    }
-
-    var isBody: Bool {
-        name.contains(kBodyEntityName)
-    }
 }
