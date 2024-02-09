@@ -55,17 +55,7 @@ struct ImmersiveView: View {
     @State private var timer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
 
     @State var spaceOrigin = Entity()
-    @State private var bodyEntity: Entity = {
-        let bodyMesh = MeshResource.generateBox(size: 0.5)
-        let bodyModel = ModelEntity(mesh: bodyMesh, materials: [SimpleMaterial(color: .blue, isMetallic: false)])
-        bodyModel.name = ImmersiveConstants.kBodyEntityName
-
-        let collisionShape = ShapeResource.generateBox(width: 0.5, height: 0.5, depth: 0.5)
-        let collisionComponent = CollisionComponent(shapes: [collisionShape])
-        bodyModel.components.set(collisionComponent)
-
-        return bodyModel
-    }()
+    @State private var bodyEntity = BodyEntity()
 
     var body: some View {
         RealityView { content, attachments in
@@ -110,14 +100,16 @@ struct ImmersiveView: View {
     }
 
     private func handleCollision(event: CollisionEvents.Began) {
-        if event.entityA.isBody || event.entityB.isBody {
-            print("\(event.entityA.name) \(event.entityB.name)")
-            bodyEntity.playAudio(Sounds.Punch.missed.audioResource)
+        // Handle targets collisions with user body
+        if [event.entityA, event.entityB].contains(where: \.isBody) {
+            self.bodyEntity.playAudio(Sounds.Punch.missed.audioResource)
 
             // Remove targets after collisions
             [event.entityA, event.entityB]
                 .compactMap { $0 as? TargetEntity }
                 .forEach { $0.removeFromParent() }
+
+            print("\(event.entityA.name) \(event.entityB.name)")
         }
     }
 
