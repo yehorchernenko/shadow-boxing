@@ -153,7 +153,7 @@ struct ImmersiveView: View {
 
     @MainActor
     func spawnTargetExact(start: Point3D, end: Point3D, speed: Double) async throws -> Entity {
-        let target = TargetEntity()
+        let target = TargetEntity(configuration: .init(speed: 0.01, hand: .allCases.randomElement()!))
         target.position = simd_float(start.vector + .init(x: 0, y: 0, z: -0.7))
 
         self.spaceOrigin.addChild(target)

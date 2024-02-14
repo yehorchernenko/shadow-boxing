@@ -1,20 +1,23 @@
 import RealityKit
+import UIKit
 
 class TargetEntity: Entity {
     /// Target is visible for users, doesn't participate in collisions
     private let modelEntity: ModelEntity
+    private let configuration: TargetEntityConfiguration
 
     /// Noise required to simulate punches that goes to different parts of the body
     /// The of noise is a bit less than body size, to ensure that the punch will hit the body
-    let positionNoise = SIMD3<Float>(
+    private let positionNoise = SIMD3<Float>(
         .random(in: -0.45...0.45),
         .random(in: -0.45...0.45),
         .random(in: -0.45...0.45)
     )
 
-    required init() {
+    init(configuration: TargetEntityConfiguration) {
+        self.configuration = configuration
         let mesh = MeshResource.generateSphere(radius: 0.3)
-        let mat = SimpleMaterial(color: .systemPink, isMetallic: false)
+        let mat = SimpleMaterial(color: configuration.hand.targetColor, isMetallic: false)
         let target = ModelEntity(mesh: mesh, materials: [mat])
         self.modelEntity = target
 
@@ -30,12 +33,41 @@ class TargetEntity: Entity {
 
         self.name = ImmersiveConstants.kTargetEntityName
     }
-
+    
+    required init() {
+        // for some reason it's called on collisions
+        print("init TargetEntity with default configuration.")
+        self.modelEntity = ModelEntity()
+        self.configuration = .invalid
+        super.init()
+    }
+    
     /// Moves the target to the given position with noise
     func moveWithNoiseTo(_ toPosition: SIMD3<Float>) {
         let toEntityPosition = toPosition + self.positionNoise
         let directionVector = normalize(toEntityPosition - self.position)
-        let speed: Float = 0.01 // Adjust speed as needed
+        let speed: Float = self.configuration.speed
         self.position += directionVector * speed
     }
+}
+
+struct TargetEntityConfiguration {
+    enum Hand: CaseIterable {
+        case left
+        case right
+
+        var targetColor: UIColor {
+            switch self {
+            case .left:
+                return .systemRed
+            case .right:
+                return .systemGreen
+            }
+        }
+    }
+
+    let speed: Float
+    let hand: Hand
+
+    static let invalid = TargetEntityConfiguration(speed: 0, hand: .left)
 }
