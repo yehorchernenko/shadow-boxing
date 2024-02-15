@@ -17,7 +17,7 @@ class TargetEntity: Entity {
     init(configuration: TargetEntityConfiguration) {
         self.configuration = configuration
         let mesh = MeshResource.generateSphere(radius: 0.3)
-        let mat = SimpleMaterial(color: configuration.hand.targetColor, isMetallic: false)
+        let mat = SimpleMaterial(color: configuration.punch.hand.targetColor, isMetallic: false)
         let target = ModelEntity(mesh: mesh, materials: [mat])
         self.modelEntity = target
 
@@ -53,9 +53,9 @@ class TargetEntity: Entity {
 
 struct TargetEntityConfiguration {
     let speed: Float
-    let hand: Hand
+    let punch: Punch
 
-    static let invalid = TargetEntityConfiguration(speed: 0, hand: .left)
+    static let invalid = TargetEntityConfiguration(speed: 0, punch: Punch(kind: .jab, hand: .left))
 }
 
 
