@@ -1,22 +1,5 @@
 import Foundation
 
-struct Level: Identifiable {
-    enum Speed {
-        case easy
-        case medium
-        case hard
-    }
-    
-    let id = UUID()
-    let name: String
-    let speed: Speed
-    let image: String
-
-    static let easy = Level(name: "Easy", speed: .easy, image: "flag.2.crossed")
-    static let medium = Level(name: "Medium", speed: .medium, image: "flag.and.flag.filled.crossed")
-    static let hard = Level(name: "Hard", speed: .hard, image: "flag.2.crossed.fill")
-}
-
 enum GameState {
     case notStarted
     case preparing
@@ -25,30 +8,10 @@ enum GameState {
     case gameOver
 }
 
-enum GameScreen {
-    static func from(_ gameModel: GameModel) -> Self {
-        switch gameModel.state {
-        case .notStarted:
-            return start
-        case .preparing:
-            return preparing
-        case .playing:
-            return emptyView
-        case .paused:
-            return emptyView
-        case .gameOver:
-            return emptyView
-        }
-    }
-
-    case start
-    case preparing
-    case emptyView
-}
-
 @Observable
 class GameModel {
     private(set) var level: Level?
+    private(set) var round: Round?
     private(set) var state: GameState
     /// Should be updated after `shouldShowImmersiveView` changes
     private(set) var immersiveViewShown = false
@@ -79,6 +42,12 @@ class GameModel {
     }
 
     func startGame() {
+        guard let level = self.level else {
+            assertionFailure("Level should be set before starting the game.")
+            return
+        }
+
+        self.round = Round(steps: Round.generateSteps(), level: level)
         self.state = .playing
         self.transactions = UUID()
     }
@@ -94,4 +63,5 @@ class GameModel {
         self.transactions = UUID()
     }
 }
+
 

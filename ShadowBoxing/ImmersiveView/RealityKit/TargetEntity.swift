@@ -52,22 +52,20 @@ class TargetEntity: Entity {
 }
 
 struct TargetEntityConfiguration {
-    enum Hand: CaseIterable {
-        case left
-        case right
-
-        var targetColor: UIColor {
-            switch self {
-            case .left:
-                return .systemRed
-            case .right:
-                return .systemGreen
-            }
-        }
-    }
-
     let speed: Float
     let hand: Hand
 
     static let invalid = TargetEntityConfiguration(speed: 0, hand: .left)
+}
+
+
+extension Hand {
+    var targetColor: UIColor {
+        switch self {
+        case .left:
+            return .systemRed
+        case .right:
+            return .systemGreen
+        }
+    }
 }

@@ -49,6 +49,7 @@ fileprivate let kScoreAttachmentID = "ScoreViewAttachment"
 struct ImmersiveView: View {
     private let arSession = ARKitSession()
     private let worldTrackingProvider = WorldTrackingProvider()
+    @Environment(GameModel.self) var gameModel
     @State private var collisionSubscription: EventSubscription?
     @State private var sceneSubscription: EventSubscription?
     @State private var sceneSubscription2: EventSubscription?
@@ -76,18 +77,13 @@ struct ImmersiveView: View {
                 InGameView()
             }
         }
-        .onReceive(timer) { _ in
-            Task { @MainActor in
-                do {
-                    let spawnAmount = 3
-                    for _ in (0..<spawnAmount) {
-                        _ = try await spawnTarget()
-                        try await Task.sleep(for: .milliseconds(.random(in: 800...1500)))
-                    }
-                } catch {
-
-                }
+        .task {
+            guard let round = self.gameModel.round else {
+                assertionFailure("Round is nil")
+                return
             }
+
+            await self.attachTargets(for: round.steps)
         }
     }
 
@@ -99,6 +95,7 @@ struct ImmersiveView: View {
         }
     }
 
+    /// Detects collisions between user and targets
     private func handleCollision(event: CollisionEvents.Began) {
         // Handle targets collisions with user body
         if [event.entityA, event.entityB].contains(where: \.isBody) {
@@ -113,6 +110,7 @@ struct ImmersiveView: View {
         }
     }
 
+    /// Moves targets towards user body
     private func handleSceneUpdate(event: SceneEvents.Update) {
         // Movement targets towards user body (device position)
         for movingEntity in spaceOrigin.children.compactMap({ $0 as? TargetEntity }) {
@@ -125,8 +123,27 @@ struct ImmersiveView: View {
         self.bodyEntity.transform = Transform(matrix: devicePosition.originFromAnchorTransform)
     }
 
+    func attachTargets(for steps: [RoundStep]) async {
+        for step in steps {
+            switch step {
+            case .delay(let milliseconds):
+                try? await Task.sleep(for: .milliseconds(milliseconds))
+            case .punch(let punch):
+                try? await spawnTarget()
+                print("Punch: \(punch.kind) with \(punch.hand) hand")
+            case .combo(let combo):
+                print("Combo start")
+                await attachTargets(for: combo.steps)
+            case .dodge:
+                print("Dodge")
+            }
+        }
+
+//        print("Round duration: \(sequence.duration)")
+    }
+
     @MainActor
-    func spawnTarget() async throws -> Entity {
+    func spawnTarget() async throws {
         let start = Point3D(
             x: targetPaths[targetPathsIndex].0,
             y: targetPaths[targetPathsIndex].1,
@@ -148,7 +165,7 @@ struct ImmersiveView: View {
         targetPathsIndex %= targetPaths.count
 
 //        cloudEntities.append(cloud)
-        return cloud
+//        return cloud
     }
 
     @MainActor
