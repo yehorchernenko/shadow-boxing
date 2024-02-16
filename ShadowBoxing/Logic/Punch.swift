@@ -1,7 +1,7 @@
 import Foundation
 
 struct Punch {
-    enum Kind {
+    enum Kind: String {
         case jab
         case cross
         case hook

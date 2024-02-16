@@ -1,6 +1,6 @@
 import Foundation
 
-enum Hand: CaseIterable {
+enum Hand: String, CaseIterable {
     case left
     case right
 

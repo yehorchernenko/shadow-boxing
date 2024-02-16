@@ -1,30 +1,30 @@
 import RealityKit
 import UIKit
+import RealityKitContent
 
 class TargetEntity: Entity {
     /// Target is visible for users, doesn't participate in collisions
-    private let modelEntity: ModelEntity
+    private let modelEntity: Entity
     private let configuration: TargetEntityConfiguration
 
     /// Noise required to simulate punches that goes to different parts of the body
     /// The of noise is a bit less than body size, to ensure that the punch will hit the body
     private let positionNoise = SIMD3<Float>(
-        .random(in: -0.45...0.45),
-        .random(in: -0.45...0.45),
-        .random(in: -0.45...0.45)
+        0,0,0
+//        .random(in: -0.45...0.45),
+//        .random(in: -0.45...0.45),
+//        .random(in: -0.45...0.45) // FIXME: 1 of coordinates shouldn't have noise to avoid overlaps
     )
+    
 
-    init(configuration: TargetEntityConfiguration) {
+    init(configuration: TargetEntityConfiguration) async {
         self.configuration = configuration
-        let mesh = MeshResource.generateSphere(radius: 0.3)
-        let mat = SimpleMaterial(color: configuration.punch.hand.targetColor, isMetallic: false)
-        let target = ModelEntity(mesh: mesh, materials: [mat])
-        self.modelEntity = target
+        self.modelEntity = await Self.loadFromRealityComposerScene(configuration)
 
         super.init()
 
         /// Target is visible for users, doesn't participate in collisions
-        self.addChild(target)
+        self.addChild(self.modelEntity)
 
         /// Setup collision
         let collisionShape = ShapeResource.generateSphere(radius: 0.3)
@@ -49,6 +49,19 @@ class TargetEntity: Entity {
         let speed: Float = self.configuration.speed
         self.position += directionVector * speed
     }
+
+    static func loadFromRealityComposerScene(_ configuration: TargetEntityConfiguration) async -> Entity {
+        let scene = try? await Entity(named: configuration.punch.entityName, in: realityKitContentBundle)
+        //if let entity = scene?.findEntity(named: configuration.punch.entityName)?.clone(recursive: true)
+        if let entity = scene  {
+            return entity
+        } else {
+            let mesh = MeshResource.generateSphere(radius: 0.3)
+            let mat = SimpleMaterial(color: .blue, isMetallic: false)
+            let target = ModelEntity(mesh: mesh, materials: [mat])
+            return target
+        }
+    }
 }
 
 struct TargetEntityConfiguration {
@@ -58,14 +71,8 @@ struct TargetEntityConfiguration {
     static let invalid = TargetEntityConfiguration(speed: 0, punch: Punch(kind: .jab, hand: .left))
 }
 
-
-extension Hand {
-    var targetColor: UIColor {
-        switch self {
-        case .left:
-            return .systemRed
-        case .right:
-            return .systemGreen
-        }
+extension Punch {
+    var entityName: String {
+        "\(self.hand.rawValue)_\(self.kind.rawValue)"
     }
 }
