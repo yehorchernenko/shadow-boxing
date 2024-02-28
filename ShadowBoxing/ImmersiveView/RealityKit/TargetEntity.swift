@@ -28,6 +28,7 @@ class TargetEntity: Entity {
         let collisionShape = ShapeResource.generateSphere(radius: 0.3)
         let collisionComponent = CollisionComponent(shapes: [collisionShape])
         self.components.set(collisionComponent)
+        self.components.set(InputTargetComponent())
 
         self.name = ImmersiveConstants.kTargetEntityName
     }

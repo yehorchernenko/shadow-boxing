@@ -37,6 +37,9 @@ struct ImmersiveView: View {
                 InGameView()
             }
         }
+        .gesture(SpatialTapGesture().targetedToAnyEntity().onEnded({ value in
+            value.entity.removeFromParent()
+        }))
         .task {
             guard let round = self.gameModel.round else {
                 assertionFailure("Round is nil")
@@ -91,11 +94,11 @@ struct ImmersiveView: View {
             case .delay(let milliseconds):
                 try? await Task.sleep(for: .milliseconds(milliseconds))
             case .punch(let punch):
-                try? await spawnTarget(for: punch)
+                try? await self.spawnTarget(for: punch)
                 print("Punch: \(punch.kind) with \(punch.hand) hand")
             case .combo(let combo):
                 print("Combo start")
-                await attachTargets(for: combo.steps)
+                await self.attachTargets(for: combo.steps)
             case .dodge:
                 print("Dodge")
             }
