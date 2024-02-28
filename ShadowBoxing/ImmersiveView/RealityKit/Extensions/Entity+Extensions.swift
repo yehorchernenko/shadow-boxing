@@ -21,4 +21,8 @@ extension Entity {
     var isBody: Bool {
         self.name.contains(ImmersiveConstants.kBodyEntityName)
     }
+
+    var isDodge: Bool {
+        self.name.contains(ImmersiveConstants.kDodgeEntityName)
+    }
 }

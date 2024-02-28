@@ -18,10 +18,16 @@ struct Round {
         let hardCombos = Combo.allCombos.filter { $0.complexity > 0.5 }
 
         return [
+            .dodge,
+            .delay(.shortBreak),
+            
             .combo(startCombos.random()),
             .delay(.longBreak),
             .combo(startCombos.random()),
             .delay(.longBreak),
+
+            .dodge,
+            .delay(.shortBreak),
 
             .combo(easyCombos.random()),
             .delay(.longBreak),

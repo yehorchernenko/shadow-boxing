@@ -61,22 +61,48 @@ struct ImmersiveView: View {
     /// Detects collisions between user and targets
     private func handleCollision(event: CollisionEvents.Began) {
         // Handle targets collisions with user body
-        if [event.entityA, event.entityB].contains(where: \.isBody) {
-            self.bodyEntity.playAudio(Sounds.Punch.missed.audioResource)
+        guard [event.entityA, event.entityB].contains(where: \.isBody) else { return }
 
-            // Remove targets after collisions
-            [event.entityA, event.entityB]
-                .compactMap { $0 as? TargetEntity }
-                .forEach { $0.removeFromParent() }
-
-            print("\(event.entityA.name) \(event.entityB.name)")
+        if [event.entityA, event.entityB].contains(where: \.isDodge) {
+            self.handleDodgeCollision(event)
         }
+
+        if [event.entityA, event.entityB].contains(where: \.isTarget) {
+            self.handleTargetCollision(event)
+        }
+
+        print("\(event.entityA.name) \(event.entityB.name)")
+    }
+
+    func handleDodgeCollision(_ event: CollisionEvents.Began) {
+        // TODO: Update score
+        self.bodyEntity.playAudio(Sounds.Punch.missed.audioResource)
+
+        // Remove dodges after collisions
+        [event.entityA, event.entityB]
+            .compactMap { $0 as? TargetEntity }
+            .forEach { $0.removeFromParent() }
+    }
+
+    func handleTargetCollision(_ event: CollisionEvents.Began) {
+        // TODO: Update score
+        self.bodyEntity.playAudio(Sounds.Punch.straight.audioResource)
+
+        // Remove targets after collisions
+        [event.entityA, event.entityB]
+            .compactMap { $0 as? TargetEntity }
+            .forEach { $0.removeFromParent() }
     }
 
     /// Moves targets towards user body
     private func handleSceneUpdate(event: SceneEvents.Update) {
         // Movement targets towards user body (device position)
-        for movingEntity in spaceOrigin.children.compactMap({ $0 as? TargetEntity }) {
+        for movingEntity in self.spaceOrigin.children.compactMap({ $0 as? TargetEntity }) {
+            movingEntity.moveWithNoiseTo(self.bodyEntity.position)
+        }
+
+        // Movement dodges towards user body (device position)
+        for movingEntity in self.spaceOrigin.children.compactMap({ $0 as? DodgeEntity }) {
             movingEntity.moveWithNoiseTo(self.bodyEntity.position)
         }
 
@@ -101,6 +127,7 @@ struct ImmersiveView: View {
                 await self.attachTargets(for: combo.steps)
             case .dodge:
                 print("Dodge")
+                try? await self.spawnDodge()
             }
         }
 
@@ -110,6 +137,14 @@ struct ImmersiveView: View {
     @MainActor
     func spawnTarget(for punch: Punch) async throws {
         let target = await TargetEntity(configuration: .init(speed: 0.01, punch: punch))
+        target.position = SIMD3<Float>(0, 1.5, -7)
+
+        self.spaceOrigin.addChild(target)
+    }
+
+    @MainActor
+    func spawnDodge() async throws {
+        let target = await DodgeEntity(speed: 0.01)
         target.position = SIMD3<Float>(0, 1.5, -7)
 
         self.spaceOrigin.addChild(target)
