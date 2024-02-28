@@ -10,12 +10,10 @@ class TargetEntity: Entity {
     /// Noise required to simulate punches that goes to different parts of the body
     /// The of noise is a bit less than body size, to ensure that the punch will hit the body
     private let positionNoise = SIMD3<Float>(
-        0,0,0
-//        .random(in: -0.45...0.45),
-//        .random(in: -0.45...0.45),
-//        .random(in: -0.45...0.45) // FIXME: 1 of coordinates shouldn't have noise to avoid overlaps
+        .random(in: -0.45...0.45),
+        .random(in: -0.45...0.45),
+        0 // This coordinate shouldn't have noise to avoid overlaps
     )
-    
 
     init(configuration: TargetEntityConfiguration) async {
         self.configuration = configuration

@@ -28,7 +28,8 @@ struct Round {
             .combo(easyCombos.random()),
             .delay(.longBreak),
             .combo(easyCombos.random()),
-
+            .delay(.longBreak),
+            
             .combo((easyCombos + hardCombos).random()),
             .delay(.longBreak),
             .combo((easyCombos + hardCombos).random()),
