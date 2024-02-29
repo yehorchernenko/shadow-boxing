@@ -77,3 +77,10 @@ extension Array where Element == Combo {
         randomElement() ?? .init(id: UUID(), complexity: 0, steps: [.punch(.jab)])
     }
 }
+
+extension Array where Element == Punch {
+    /// Random element or jab
+    func random() -> Punch {
+        randomElement() ?? .jab
+    }
+}

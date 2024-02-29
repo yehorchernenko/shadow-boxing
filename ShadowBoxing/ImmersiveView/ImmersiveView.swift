@@ -80,7 +80,7 @@ struct ImmersiveView: View {
 
         // Remove dodges after collisions
         [event.entityA, event.entityB]
-            .compactMap { $0 as? TargetEntity }
+            .compactMap { $0 as? DodgeEntity }
             .forEach { $0.removeFromParent() }
     }
 
@@ -136,7 +136,8 @@ struct ImmersiveView: View {
 
     @MainActor
     func spawnTarget(for punch: Punch) async throws {
-        let target = await TargetEntity(configuration: .init(speed: 0.01, punch: punch))
+        let speed = self.gameModel.round?.level.speed ?? Level.easy.speed
+        let target = await TargetEntity(configuration: .init(speed: speed, punch: punch))
         target.position = SIMD3<Float>(0, 1.5, -7)
 
         self.spaceOrigin.addChild(target)
@@ -144,7 +145,8 @@ struct ImmersiveView: View {
 
     @MainActor
     func spawnDodge() async throws {
-        let target = await DodgeEntity(speed: 0.01)
+        let speed = self.gameModel.round?.level.speed ?? Level.easy.speed
+        let target = await DodgeEntity(speed: speed)
         target.position = SIMD3<Float>(0, 1.5, -7)
 
         self.spaceOrigin.addChild(target)

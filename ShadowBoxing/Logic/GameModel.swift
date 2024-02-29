@@ -13,6 +13,8 @@ class GameModel {
     private(set) var level: Level?
     private(set) var round: Round?
     private(set) var state: GameState
+    private(set) var roundCountdownTimer = Timer()
+
     /// Should be updated after `shouldShowImmersiveView` changes
     private(set) var immersiveViewShown = false
     // Used to handle multiple state changes in a single transaction.
@@ -47,14 +49,26 @@ class GameModel {
             return
         }
 
-        self.round = Round(steps: Round.generateSteps(), level: level)
+        self.round = Round(level: level)
         self.state = .playing
+
+        self.roundCountdownTimer.invalidate()
+        self.roundCountdownTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true, block: { timer in
+            self.round?.timeLeft -= 1000 // ms
+
+            if let timeLeft = self.round?.timeLeft, timeLeft <= 0 {
+                /// Should be replaced with game over to show user results
+                self.finishGame()
+            }
+        })
+
         self.transactions = UUID()
     }
 
     func finishGame() {
         self.level = nil
         self.state = .notStarted
+        self.roundCountdownTimer.invalidate()
         self.transactions = UUID()
     }
 
