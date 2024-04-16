@@ -37,10 +37,8 @@ struct ImmersiveView: View {
                 InGameView()
             }
         }
-        .gesture(SpatialTapGesture().targetedToAnyEntity().onEnded({ value in
-            #if DEBUG
+        .simulatorOnlyGesture(SpatialTapGesture().targetedToAnyEntity().onEnded({ value in
             self.handleHandCollision(entity: value.entity)
-            #endif
         }))
         .task {
             guard let round = self.gameModel.round else {
