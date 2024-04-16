@@ -9,9 +9,14 @@ struct InGameView: View {
     var body: some View {
         VStack {
             Text("Time left \(self.gameModel.round.map(\.timeLeft).map { $0 / 1000 }?.rounded(.toNearestOrEven) ?? 0)")
-            Text("Your score")
+            Text("Combo multiplier \(self.gameModel.round.map(\.comboMultiplier) ?? 0)")
+            Text("Your score \(self.gameModel.round.map(\.score) ?? 0)")
             Button("Finish") {
                 self.gameModel.finishGame()
+            }
+            .padding()
+            Button("Pause") {
+                // TODO: Implement pausing
             }
             .padding()
         }

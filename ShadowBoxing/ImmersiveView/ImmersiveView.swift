@@ -24,12 +24,12 @@ struct ImmersiveView: View {
             content.add(bodyEntity)
             self.setupScoreAttachment(attachments)
 
-            self.collisionSubscription = content.subscribe(to: CollisionEvents.Began.self, self.handleCollision(event:))
+            self.collisionSubscription = content.subscribe(to: CollisionEvents.Began.self, self.handleBodyCollision(event:))
 
             self.sceneSubscription = content.subscribe(to: SceneEvents.Update.self, self.handleSceneUpdate(event:))
 
             Task {
-                try await self.arSession.run([worldTrackingProvider])
+                try await self.arSession.run([self.worldTrackingProvider])
             }
 
         } attachments: {
@@ -38,7 +38,9 @@ struct ImmersiveView: View {
             }
         }
         .gesture(SpatialTapGesture().targetedToAnyEntity().onEnded({ value in
-            value.entity.removeFromParent()
+            #if DEBUG
+            self.handleHandCollision(entity: value.entity)
+            #endif
         }))
         .task {
             guard let round = self.gameModel.round else {
@@ -58,23 +60,34 @@ struct ImmersiveView: View {
         }
     }
 
-    /// Detects collisions between user and targets
-    private func handleCollision(event: CollisionEvents.Began) {
+    // Detects collisions between user hands and targets
+    // TODO: Replace entity with `event`
+    private func handleHandCollision(entity: Entity) {
+        guard let targetEntity = entity as? TargetEntity else { return }
+        targetEntity.removeFromParent()
+
+        self.gameModel.handlePunch(targetEntity.configuration.punch)
+
+        Log.collision.info("Hand collision: \(entity.name)")
+    }
+
+    /// Detects collisions between user body and entities
+    private func handleBodyCollision(event: CollisionEvents.Began) {
         // Handle targets collisions with user body
         guard [event.entityA, event.entityB].contains(where: \.isBody) else { return }
 
         if [event.entityA, event.entityB].contains(where: \.isDodge) {
-            self.handleDodgeCollision(event)
+            self.handleBodyDodgeCollision(event)
         }
 
         if [event.entityA, event.entityB].contains(where: \.isTarget) {
-            self.handleTargetCollision(event)
+            self.handleBodyTargetCollision(event)
         }
 
-        print("\(event.entityA.name) \(event.entityB.name)")
+        Log.collision.info("Body collision: \(event.entityA.name) \(event.entityB.name)")
     }
 
-    func handleDodgeCollision(_ event: CollisionEvents.Began) {
+    private func handleBodyDodgeCollision(_ event: CollisionEvents.Began) {
         // TODO: Update score
         self.bodyEntity.playAudio(Sounds.Punch.missed.audioResource)
 
@@ -84,9 +97,9 @@ struct ImmersiveView: View {
             .forEach { $0.removeFromParent() }
     }
 
-    func handleTargetCollision(_ event: CollisionEvents.Began) {
-        // TODO: Update score
+    private func handleBodyTargetCollision(_ event: CollisionEvents.Began) {
         self.bodyEntity.playAudio(Sounds.Punch.straight.audioResource)
+        self.gameModel.missedCombo()
 
         // Remove targets after collisions
         [event.entityA, event.entityB]
@@ -118,20 +131,21 @@ struct ImmersiveView: View {
         for step in steps {
             switch step {
             case .delay(let milliseconds):
+                Log.roundStep.info("Delay: \(milliseconds) ms")
                 try? await Task.sleep(for: .milliseconds(milliseconds))
             case .punch(let punch):
                 try? await self.spawnTarget(for: punch)
-                print("Punch: \(punch.kind) with \(punch.hand) hand")
+                Log.roundStep.info("Punch: \(punch.kind.rawValue) with \(punch.hand.rawValue) hand")
             case .combo(let combo):
-                print("Combo start")
+                Log.roundStep.info("Combo start \(combo.id)")
                 await self.attachTargets(for: combo.steps)
             case .dodge:
-                print("Dodge")
+                Log.roundStep.info("Dodge")
                 try? await self.spawnDodge()
             }
         }
 
-//        print("Round duration: \(sequence.duration)")
+        Log.roundStep.info("Round duration: \(steps.duration) ms")
     }
 
     @MainActor

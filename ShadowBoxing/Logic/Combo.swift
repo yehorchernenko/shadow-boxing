@@ -1,44 +1,48 @@
 import Foundation
 
-struct Combo {
+struct Combo: Hashable {
     let id: UUID
     let complexity: Double
     let steps: [RoundStep]
 
     /// Basic
     static var jabJab: Combo {
-        Combo(id: UUID(), complexity: 0, steps: [
-            .punch(.jab),
+        let id = UUID()
+        return Combo(id: id, complexity: 0, steps: [
+            .punch(.jab(comboID: id)),
             .delay(.shortBreak),
-            .punch(.jab)
+            .punch(.jab(comboID: id))
         ])
     }
 
     static var jabCross: Combo {
-        Combo(id: UUID(), complexity: 0.2, steps: [
-            .punch(.jab),
+        let id = UUID()
+        return Combo(id: id, complexity: 0.2, steps: [
+            .punch(.jab(comboID: id)),
             .delay(.shortBreak),
-            .punch(.cross)
+            .punch(.cross(comboID: id))
         ])
     }
 
     static var jabJabCross: Combo {
-        Combo(id: UUID(), complexity: 0.2, steps: [
-            .punch(.jab),
+        let id = UUID()
+        return Combo(id: id, complexity: 0.2, steps: [
+            .punch(.jab(comboID: id)),
             .delay(.shortBreak),
-            .punch(.jab),
+            .punch(.jab(comboID: id)),
             .delay(.shortBreak),
-            .punch(.cross)
+            .punch(.cross(comboID: id))
         ])
     }
 
     static var jabCrossLeadHook: Combo {
-        Combo(id: UUID(), complexity: 0.5, steps: [
-            .punch(.jab),
+        let id = UUID()
+        return Combo(id: id, complexity: 0.5, steps: [
+            .punch(.jab(comboID: id)),
             .delay(.shortBreak),
-            .punch(.cross),
+            .punch(.cross(comboID: id)),
             .delay(.shortBreak),
-            .punch(.leadHook)
+            .punch(.leadHook(comboID: id))
         ])
     }
 
@@ -47,14 +51,15 @@ struct Combo {
 
     /// Advanced
     static var jabCrossLeadHookRearUppercut: Combo {
-        Combo(id: UUID(), complexity: 1, steps: [
-            .punch(.jab),
+        let id = UUID()
+        return Combo(id: id, complexity: 1, steps: [
+            .punch(.jab(comboID: id)),
             .delay(.shortBreak),
-            .punch(.cross),
+            .punch(.cross(comboID: id)),
             .delay(.shortBreak),
-            .punch(.leadHook),
+            .punch(.leadHook(comboID: id)),
             .delay(.shortBreak),
-            .punch(.rearUppercut)
+            .punch(.rearUppercut(comboID: id))
         ])
     }
     // Jab - Uppercut - Cross - Hook
@@ -74,13 +79,13 @@ struct Combo {
 extension Array where Element == Combo {
     /// Random element or jab
     func random() -> Combo {
-        randomElement() ?? .init(id: UUID(), complexity: 0, steps: [.punch(.jab)])
+        randomElement() ?? .init(id: UUID(), complexity: 0, steps: [.punch(.jab())])
     }
 }
 
 extension Array where Element == Punch {
     /// Random element or jab
     func random() -> Punch {
-        randomElement() ?? .jab
+        randomElement() ?? .jab()
     }
 }

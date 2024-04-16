@@ -1,6 +1,6 @@
 import Foundation
 
-enum RoundStep {
+enum RoundStep: Hashable {
     case delay(TimeInterval)
     case punch(Punch)
     case combo(Combo)
@@ -9,8 +9,8 @@ enum RoundStep {
 
 extension RoundStep {
     /// Returns random step
-    var dodgeOrPunch: RoundStep {
-        Bool.random() ? .dodge : .punch([.jab, .cross].random())
+    static var dodgeOrPunch: RoundStep {
+        Bool.random() ? .dodge : .punch([.jab(), .cross()].random())
     }
 }
 
@@ -18,6 +18,11 @@ struct Round {
     let steps: [RoundStep]
     let level: Level
     var timeLeft: TimeInterval
+    var score: Int
+    var comboMultiplier: Int
+    // This is used to handle finished combos. It stores number of punches in a combo.
+    // When value is equal 0 it means user successfully finished the combo
+    var combosStatus: [UUID: Int]
 
     init(level: Level) {
         self.level = level
@@ -28,6 +33,29 @@ struct Round {
         /// This magic number should be replaced with duration that entity reach the user
         let startDelay = 100 / level.speed
         self.timeLeft = steps.duration + Double(startDelay)
+        self.score = 0
+        self.comboMultiplier = 1
+        // Count initial number of punches in combo
+        self.combosStatus = self.steps.punchesByComboIDs.reduce(into: [UUID: Int]()) { result, comboID in
+            result[comboID] = (result[comboID] ?? 0) + 1
+        }
+    }
+
+    mutating func handlePunch(_ punch: Punch) {
+        defer {
+            self.score += self.level.punchPoints * self.comboMultiplier
+        }
+
+        guard let punchComboID = punch.comboID else { return }
+        self.combosStatus[punchComboID, default: 0] -= 1
+
+        if self.combosStatus[punchComboID] == 0 {
+            self.comboMultiplier += 1
+        }
+    }
+
+    mutating func missedCombo() {
+        self.comboMultiplier = 1
     }
 
     /// Should be adjusted by select level
@@ -36,8 +64,9 @@ struct Round {
         let easyCombos = Combo.allCombos.filter { $0.complexity < 0.5 }
         let hardCombos = Combo.allCombos.filter { $0.complexity > 0.5 }
 
+        // BUG: Combos start, easy and hard combos always have the same ID. This breaks logic for handling finished combos.
         return [
-            .dodge,
+            .dodgeOrPunch,
             .delay(.shortBreak),
             
             .combo(startCombos.random()),
@@ -45,7 +74,7 @@ struct Round {
             .combo(startCombos.random()),
             .delay(.longBreak),
 
-            .dodge,
+            .dodgeOrPunch,
             .delay(.shortBreak),
 
             .combo(easyCombos.random()),
@@ -77,4 +106,18 @@ extension Array where Element == RoundStep {
             }
         }
     }
+
+    var punchesByComboIDs: [UUID] {
+        reduce([UUID]()) { result, step in
+            switch step {
+            case .combo(let combo):
+                return result + combo.steps.punchesByComboIDs
+            case .punch(let punch):
+                return result + [punch.comboID].compactMap { $0 }
+            default:
+                return result
+            }
+        }
+    }
+
 }

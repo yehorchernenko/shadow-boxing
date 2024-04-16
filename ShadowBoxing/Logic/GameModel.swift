@@ -76,6 +76,17 @@ class GameModel {
         self.immersiveViewShown = isShown
         self.transactions = UUID()
     }
+
+    // Round logic
+    func handlePunch(_ punch: Punch) {
+        self.round?.handlePunch(punch)
+        self.transactions = UUID()
+    }
+
+    func missedCombo() {
+        self.round?.missedCombo()
+        self.transactions = UUID()
+    }
 }
 
 

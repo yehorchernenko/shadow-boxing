@@ -3,9 +3,9 @@ import UIKit
 import RealityKitContent
 
 class TargetEntity: Entity {
-    /// Target is visible for users, doesn't participate in collisions
+    let configuration: TargetEntityConfiguration
+    /// Model is visible for users, doesn't participate in collisions
     private let modelEntity: Entity
-    private let configuration: TargetEntityConfiguration
 
     /// Noise required to simulate punches that goes to different parts of the body
     /// The of noise is a bit less than body size, to ensure that the punch will hit the body
@@ -21,7 +21,7 @@ class TargetEntity: Entity {
 
         super.init()
 
-        /// Target is visible for users, doesn't participate in collisions
+        /// Model is visible for users, doesn't participate in collisions
         self.addChild(self.modelEntity)
 
         /// Setup collision
@@ -35,7 +35,6 @@ class TargetEntity: Entity {
     
     required init() {
         // for some reason it's called on collisions
-        print("init TargetEntity with default configuration.")
         self.modelEntity = ModelEntity()
         self.configuration = .invalid
         super.init()
@@ -67,7 +66,7 @@ struct TargetEntityConfiguration {
     let speed: Float
     let punch: Punch
 
-    static let invalid = TargetEntityConfiguration(speed: 0, punch: Punch(kind: .jab, hand: .left))
+    static let invalid = TargetEntityConfiguration(speed: 0, punch: Punch(kind: .jab, hand: .left, comboID: nil))
 }
 
 extension Punch {
