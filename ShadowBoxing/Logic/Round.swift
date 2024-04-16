@@ -60,35 +60,32 @@ struct Round {
 
     /// Should be adjusted by select level
     static func generateSteps(level: Level) -> [RoundStep] {
-        let startCombos = Combo.allCombos.filter { $0.complexity < 0.2 }
-        let easyCombos = Combo.allCombos.filter { $0.complexity < 0.5 }
-        let hardCombos = Combo.allCombos.filter { $0.complexity > 0.5 }
 
         // BUG: Combos start, easy and hard combos always have the same ID. This breaks logic for handling finished combos.
         return [
             .dodgeOrPunch,
             .delay(.shortBreak),
-            
-            .combo(startCombos.random()),
+
+            .combo(.randomEasyCombo),
             .delay(.longBreak),
-            .combo(startCombos.random()),
+            .combo(.randomEasyCombo),
             .delay(.longBreak),
 
             .dodgeOrPunch,
             .delay(.shortBreak),
 
-            .combo(easyCombos.random()),
+            .combo(.randomEasyCombo),
             .delay(.longBreak),
-            .combo(easyCombos.random()),
+            .combo(.randomEasyCombo),
             .delay(.longBreak),
-            .combo(easyCombos.random()),
+            .combo(.randomEasyCombo),
             .delay(.longBreak),
-            
-            .combo((easyCombos + hardCombos).random()),
+
+            .combo(.randomHardCombo),
             .delay(.longBreak),
-            .combo((easyCombos + hardCombos).random()),
+            .combo(.randomHardCombo),
             .delay(.longBreak),
-            .combo((easyCombos + hardCombos).random()),
+            .combo(.randomHardCombo),
         ]
     }
 }

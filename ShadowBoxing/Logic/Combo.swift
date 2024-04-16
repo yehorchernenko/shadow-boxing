@@ -67,13 +67,27 @@ struct Combo: Hashable {
     // Cross - Lead Uppercut - Rear Hook - Cross
 
     /// Don't forget to add new combos to the `allCombos` list
-    static var allCombos: [Combo] = [
-        .jabJab,
-        .jabCross,
-        .jabJabCross,
-        .jabCrossLeadHook,
-        .jabCrossLeadHookRearUppercut,
-    ]
+    static var allCombos: [Combo] {
+        [
+            .jabJab,
+            .jabCross,
+            .jabJabCross,
+            .jabCrossLeadHook,
+            .jabCrossLeadHookRearUppercut,
+        ]
+    }
+
+    static var randomEasyCombo: Combo {
+        Combo.allCombos.filter { $0.complexity < 0.2 }.random()
+    }
+
+    static var randomMediumCombo: Combo {
+        Combo.allCombos.filter { $0.complexity > 0.5 && $0.complexity < 0.5 }.random()
+    }
+    
+    static var randomHardCombo: Combo {
+        Combo.allCombos.filter { $0.complexity > 0.5 }.random()
+    }
 }
 
 extension Array where Element == Combo {
