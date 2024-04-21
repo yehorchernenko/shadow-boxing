@@ -61,6 +61,7 @@ struct ImmersiveView: View {
     // Detects collisions between user hands and targets
     // TODO: Replace entity with `event`
     private func handleHandCollision(entity: Entity) {
+        self.bodyEntity.playAudio(Sounds.Punch.hit.audioResource)
         guard let targetEntity = entity as? TargetEntity else { return }
 
         self.gameModel.handlePunch(targetEntity.configuration.punch)
@@ -99,7 +100,7 @@ struct ImmersiveView: View {
 
     private func handleBodyDodgeCollision(_ event: CollisionEvents.Began) {
         // TODO: Update score
-        self.bodyEntity.playAudio(Sounds.Punch.missed.audioResource)
+        self.bodyEntity.playAudio(Sounds.Dodge.hit.audioResource)
 
         // Remove dodges after collisions
         [event.entityA, event.entityB]
@@ -108,7 +109,7 @@ struct ImmersiveView: View {
     }
 
     private func handleBodyTargetCollision(_ event: CollisionEvents.Began) {
-        self.bodyEntity.playAudio(Sounds.Punch.straight.audioResource)
+        self.bodyEntity.playAudio(Sounds.Punch.missed.audioResource)
         self.gameModel.missedCombo()
 
         // Remove targets after collisions
