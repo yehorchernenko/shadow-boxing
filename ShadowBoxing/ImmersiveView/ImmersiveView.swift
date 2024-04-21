@@ -62,9 +62,21 @@ struct ImmersiveView: View {
     // TODO: Replace entity with `event`
     private func handleHandCollision(entity: Entity) {
         guard let targetEntity = entity as? TargetEntity else { return }
-        targetEntity.removeFromParent()
 
         self.gameModel.handlePunch(targetEntity.configuration.punch)
+
+        let orbitEntity = targetEntity.findEntity(named: "orbit")!
+        var transform = orbitEntity.transform
+        transform.scale = [0.3, 0.3, 0.3]
+        let animationDefinition = FromToByAnimation(to: transform, duration: 0.3, timing: .easeIn, bindTarget: .transform)
+        let animationViewDefinition = AnimationView(source: animationDefinition)
+        let animationResource = try! AnimationResource.generate(with: animationViewDefinition)
+        orbitEntity.playAnimation(animationResource)
+
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            targetEntity.removeFromParent()
+        }
 
         Log.collision.info("Hand collision: \(entity.name)")
     }
@@ -150,7 +162,7 @@ struct ImmersiveView: View {
     func spawnTarget(for punch: Punch) async throws {
         let speed = self.gameModel.round?.level.speed ?? Level.easy.speed
         let target = await TargetEntity(configuration: .init(speed: speed, punch: punch))
-        target.position = SIMD3<Float>(0, 1.5, -7)
+        target.position = SIMD3<Float>(0, 1, -7)
 
         self.spaceOrigin.addChild(target)
     }
