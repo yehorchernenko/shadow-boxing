@@ -99,8 +99,8 @@ struct ImmersiveView: View {
     }
 
     private func handleBodyDodgeCollision(_ event: CollisionEvents.Began) {
-        // TODO: Update score
         self.bodyEntity.playAudio(Sounds.Dodge.hit.audioResource)
+        self.gameModel.missedCombo()
 
         // Remove dodges after collisions
         [event.entityA, event.entityB]
@@ -127,7 +127,11 @@ struct ImmersiveView: View {
 
         // Movement dodges towards user body (device position)
         for movingEntity in self.spaceOrigin.children.compactMap({ $0 as? DodgeEntity }) {
-            movingEntity.moveWithNoiseTo(self.bodyEntity.position)
+            movingEntity.moveTo(self.bodyEntity.position)
+            if movingEntity.isPositionReached(self.bodyEntity.position) {
+                self.bodyEntity.playAudio(Sounds.Dodge.missed.audioResource)
+                movingEntity.removeFromParent()
+            }
         }
 
         // Update body position. Set to device position

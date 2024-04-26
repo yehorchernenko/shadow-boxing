@@ -7,10 +7,6 @@ class DodgeEntity: Entity {
     private let modelEntity: Entity
     private let speed: Float
 
-    /// Noise required to simulate punches that goes to different parts of the body
-    /// The of noise is a bit less than body size, to ensure that the punch will hit the body
-    private let positionNoise = SIMD3<Float>(0, 0, 0)
-
     init(speed: Float) async {
         self.modelEntity = await Self.loadFromRealityComposerScene("dodge")
         self.speed = speed
@@ -21,7 +17,7 @@ class DodgeEntity: Entity {
         self.addChild(self.modelEntity)
 
         /// Setup collision
-        let collisionShape = ShapeResource.generateSphere(radius: 0.3)
+        let collisionShape = ShapeResource.generateBox(width: 1.25, height: 0.25, depth: 0.25)
         let collisionComponent = CollisionComponent(shapes: [collisionShape])
         self.components.set(collisionComponent)
 
@@ -37,10 +33,23 @@ class DodgeEntity: Entity {
     }
 
     /// Moves the target to the given position with noise
-    func moveWithNoiseTo(_ toPosition: SIMD3<Float>) {
-        let toEntityPosition = toPosition + self.positionNoise
-        let directionVector = normalize(toEntityPosition - self.position)
+    func moveTo(_ toPosition: SIMD3<Float>) {
+        Log.nowDebugging.debug("Dodge position: \(self.position)")
+        
+        // Height position shouldn't changed because it gives user ability to dodge the entity
+        var targetPosition = toPosition
+        targetPosition.y = 1.5
+        let directionVector = normalize(targetPosition - self.position)
         self.position += directionVector * self.speed
+    }
+
+    func isPositionReached(_ position: SIMD3<Float>) -> Bool {
+        /// Distance 2D is used because we don't want to check height
+        let distance2D = simd_distance(simd_float2(self.position.x, self.position.z), simd_float2(position.x, position.z))
+        Log.nowDebugging.debug("Distance: \(distance2D)")
+
+        /// 0.15 (15 cm) is a threshold for position reached
+        return distance2D < 0.015
     }
 
     static func loadFromRealityComposerScene(_ name: String) async -> Entity {

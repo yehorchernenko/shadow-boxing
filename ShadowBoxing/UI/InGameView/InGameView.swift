@@ -8,17 +8,19 @@ struct InGameView: View {
 
     var body: some View {
         VStack {
-            Text("Time left \(self.gameModel.round.map(\.timeLeft).map { $0 / 1000 }?.rounded(.toNearestOrEven) ?? 0)")
-            Text("Combo multiplier \(self.gameModel.round.map(\.comboMultiplier) ?? 0)")
-            Text("Your score \(self.gameModel.round.map(\.score) ?? 0)")
+            Text("Time left: \(self.gameModel.roundState.timeLeft) s")
+            Text("Combo multiplier x\(self.gameModel.roundState.comboMultiplier)")
+                .bold()
+            Text("Your score \(self.gameModel.roundState.score)")
+                .underline()
             Button("Finish") {
                 self.gameModel.finishGame()
             }
             .padding()
-            Button("Pause") {
-                // TODO: Implement pausing
-            }
-            .padding()
+//            Button("Pause") {
+//                // TODO: Implement pausing
+//            }
+//            .padding()
         }
         .font(.system(size: 30))
         .padding(20)
@@ -28,4 +30,18 @@ struct InGameView: View {
 
 #Preview {
     InGameView()
+}
+
+extension GameModel {
+    struct RoundState {
+        let timeLeft: Int
+        let comboMultiplier: Int
+        let score: Int
+    }
+
+    var roundState: RoundState {
+        RoundState(timeLeft: Int(self.round.map(\.timeLeft).map { $0 / 1000 }?.rounded(.toNearestOrEven) ?? 0),
+                   comboMultiplier: self.round.map(\.comboMultiplier) ?? 0,
+                   score: self.round.map(\.score) ?? 0)
+    }
 }
