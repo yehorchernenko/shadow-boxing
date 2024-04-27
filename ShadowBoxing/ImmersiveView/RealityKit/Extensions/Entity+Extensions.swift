@@ -25,4 +25,8 @@ extension Entity {
     var isDodge: Bool {
         self.name.contains(ImmersiveConstants.kDodgeEntityName)
     }
+
+    var isHandJoint: Bool {
+        self.name.contains(ImmersiveConstants.kHandJointEntityName)
+    }
 }

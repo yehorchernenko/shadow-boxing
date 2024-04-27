@@ -19,6 +19,7 @@ class GameModel {
     private(set) var immersiveViewShown = false
     // Used to handle multiple state changes in a single transaction.
     // Note: every state change that needs to be displayed to the user should be done in a transaction.
+    // TODO: - Check why I added this property
     private(set) var transactions: UUID = UUID()
 
     /// Depends on the game state.
@@ -52,6 +53,7 @@ class GameModel {
         self.round = Round(level: level)
         self.state = .playing
 
+        // Run countdown timer
         self.roundCountdownTimer.invalidate()
         self.roundCountdownTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true, block: { timer in
             self.round?.timeLeft -= 1000 // ms

@@ -4,4 +4,5 @@ struct ImmersiveConstants {
     static let kBodyEntityName = "Body"
     static let kTargetEntityName = "Target"
     static let kDodgeEntityName = "Dodge"
+    static let kHandJointEntityName = "HandJoint"
 }

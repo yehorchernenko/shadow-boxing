@@ -16,6 +16,14 @@ struct ImmersiveView: View {
 
     @State var spaceOrigin = Entity()
     @State private var bodyEntity = BodyEntity()
+    private let handJointEntities = Array(repeating: HandJointEntity(), count: 16)
+
+    let handJoints: [HandSkeleton.JointName] = [
+        .thumbIntermediateBase, .indexFingerIntermediateBase, .middleFingerIntermediateBase, .ringFingerIntermediateBase, .littleFingerIntermediateBase,
+        .thumbKnuckle, .indexFingerKnuckle, .middleFingerKnuckle, .ringFingerKnuckle, .littleFingerKnuckle,
+        .indexFingerMetacarpal, .middleFingerMetacarpal, .ringFingerMetacarpal, .littleFingerMetacarpal,
+        .wrist, .forearmWrist,
+    ]
 
     var body: some View {
         RealityView { content, attachments in
@@ -23,12 +31,12 @@ struct ImmersiveView: View {
             content.add(bodyEntity)
             self.setupScoreAttachment(attachments)
 
-            self.collisionSubscription = content.subscribe(to: CollisionEvents.Began.self, self.handleBodyCollision(event:))
-
+            self.collisionSubscription = content.subscribe(to: CollisionEvents.Began.self, self.handleCollision(event:))
             self.sceneSubscription = content.subscribe(to: SceneEvents.Update.self, self.handleSceneUpdate(event:))
 
             Task {
                 try await self.arSession.run(self.environmentBasedProviders)
+                await self.processHandUpdates()
             }
 
         } attachments: {
@@ -37,8 +45,9 @@ struct ImmersiveView: View {
             }
         }
         .simulatorOnlyGesture(SpatialTapGesture().targetedToAnyEntity().onEnded({ value in
-            self.handleHandCollision(entity: value.entity)
+            self.simulateHandJointPosition(at: value.entity.position)
         }))
+        .upperLimbVisibility(.visible)
         .task {
             guard let round = self.gameModel.round else {
                 assertionFailure("Round is nil")
@@ -46,6 +55,7 @@ struct ImmersiveView: View {
             }
 
             await self.attachTargets(for: round.steps)
+            self.attachHandEntities()
         }
     }
 
@@ -57,36 +67,68 @@ struct ImmersiveView: View {
         }
     }
 
-    // Detects collisions between user hands and targets
-    // TODO: Replace entity with `event`
-    private func handleHandCollision(entity: Entity) {
-        self.bodyEntity.playAudio(Sounds.Punch.hit.audioResource)
-        guard let targetEntity = entity as? TargetEntity else { return }
+    private func processHandUpdates() async {
+        for await update in self.handTrackingProvider.anchorUpdates {
+            let handAnchor = update.anchor
+            guard handAnchor.isTracked else { continue }
 
+            // Update ball positions for each joint. If it's the left hand, start at 0, if it's the right hand, start at 16.
+            let start = handAnchor.chirality == .left ? 0 : handJoints.count
+            for i in 0..<handJoints.count {
+                guard let position = handAnchor.handSkeleton?.joint(handJoints[i]) else { continue }
+                let worldPos = handAnchor.originFromAnchorTransform * position.anchorFromJointTransform
+                await self.handJointEntities[i + start].setTransformMatrix(worldPos, relativeTo: nil)
+            }
+        }
+    }
+
+    // Detects collisions between user hands and targets
+    private func handleHandTargetCollision(_ event: CollisionEvents.Began) {
+        guard let targetEntity = event.entity(of: TargetEntity.self),
+              !targetEntity.shouldIgnoreCollision,
+        let handJointEntity = event.entity(of: HandJointEntity.self) else { return }
+
+        self.bodyEntity.playAudio(Sounds.Punch.hit.audioResource)
         self.gameModel.handlePunch(targetEntity.configuration.punch)
 
         let animationDuration = 0.3
         targetEntity.playSqueezeAnimation(duration: animationDuration)
+        // Prevent further collisions with the same target.
+        // Produces crash - targetEntity.components.remove(CollisionComponent.self)
+        // Use a flag to ignore collisions instead.
+        targetEntity.shouldIgnoreCollision = true
 
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: UInt64(animationDuration * 1_000_000_000))
             targetEntity.removeFromParent()
+
+            #if targetEnvironment(simulator)
+            handJointEntity.removeFromParent()
+            #endif
         }
 
-        Log.collision.info("Hand collision: \(entity.name)")
+        Log.collision.info("Hand collision: \(targetEntity.name)")
     }
 
     /// Detects collisions between user body and entities
-    private func handleBodyCollision(event: CollisionEvents.Began) {
-        // Handle targets collisions with user body
-        guard [event.entityA, event.entityB].contains(where: \.isBody) else { return }
+    private func handleCollision(event: CollisionEvents.Began) {
+        let participants = [event.entityA, event.entityB]
 
-        if [event.entityA, event.entityB].contains(where: \.isDodge) {
-            self.handleBodyDodgeCollision(event)
+        // Handle targets collisions with user body
+        if participants.contains(where: \.isBody) {
+            if participants.contains(where: \.isDodge) {
+                self.handleBodyDodgeCollision(event)
+            }
+
+            if participants.contains(where: \.isTarget) {
+                self.handleBodyTargetCollision(event)
+            }
         }
 
-        if [event.entityA, event.entityB].contains(where: \.isTarget) {
-            self.handleBodyTargetCollision(event)
+        if participants.contains(where: \.isHandJoint) {
+            if participants.contains(where: \.isTarget) {
+                self.handleHandTargetCollision(event)
+            }
         }
 
         Log.collision.info("Body collision: \(event.entityA.name) \(event.entityB.name)")
@@ -103,13 +145,16 @@ struct ImmersiveView: View {
     }
 
     private func handleBodyTargetCollision(_ event: CollisionEvents.Began) {
+        guard let targetEntity = event.entity(of: TargetEntity.self),
+              !targetEntity.shouldIgnoreCollision else {
+            return
+        }
+
         self.bodyEntity.playAudio(Sounds.Punch.missed.audioResource)
         self.gameModel.missedCombo()
 
         // Remove targets after collisions
-        [event.entityA, event.entityB]
-            .compactMap { $0 as? TargetEntity }
-            .forEach { $0.removeFromParent() }
+        targetEntity.removeFromParent()
     }
 
     /// Moves targets towards user body
@@ -136,7 +181,7 @@ struct ImmersiveView: View {
         self.bodyEntity.transform = Transform(matrix: devicePosition.originFromAnchorTransform)
     }
 
-    func attachTargets(for steps: [RoundStep]) async {
+    private func attachTargets(for steps: [RoundStep]) async {
         for step in steps {
             switch step {
             case .delay(let milliseconds):
@@ -155,6 +200,12 @@ struct ImmersiveView: View {
         }
 
         Log.roundStep.info("Round duration: \(steps.duration) ms")
+    }
+
+    private func attachHandEntities() {
+        #if !targetEnvironment(simulator)
+        self.handJointEntities.forEach { self.spaceOrigin.addChild($0) }
+        #endif
     }
 
     @MainActor
@@ -189,5 +240,12 @@ extension ImmersiveView {
         #else
         return [self.worldTrackingProvider, self.handTrackingProvider]
         #endif
+    }
+
+    func simulateHandJointPosition(at position: SIMD3<Float>) {
+        let handJoint = HandJointEntity()
+        handJoint.position = position
+        handJoint.position.z += 0.5
+        self.spaceOrigin.addChild(handJoint)
     }
 }

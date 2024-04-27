@@ -4,6 +4,7 @@ import RealityKitContent
 
 class TargetEntity: Entity {
     let configuration: TargetEntityConfiguration
+    var shouldIgnoreCollision = false
     /// Model is visible for users, doesn't participate in collisions
     private let modelEntity: Entity
 
