@@ -8,11 +8,11 @@ fileprivate let kScoreAttachmentID = "ScoreViewAttachment"
 
 struct ImmersiveView: View {
     private let arSession = ARKitSession()
+    private let handTrackingProvider = HandTrackingProvider()
     private let worldTrackingProvider = WorldTrackingProvider()
     @Environment(GameModel.self) var gameModel
     @State private var collisionSubscription: EventSubscription?
     @State private var sceneSubscription: EventSubscription?
-    @State private var timer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
 
     @State var spaceOrigin = Entity()
     @State private var bodyEntity = BodyEntity()
@@ -28,7 +28,7 @@ struct ImmersiveView: View {
             self.sceneSubscription = content.subscribe(to: SceneEvents.Update.self, self.handleSceneUpdate(event:))
 
             Task {
-                try await self.arSession.run([self.worldTrackingProvider])
+                try await self.arSession.run(self.environmentBasedProviders)
             }
 
         } attachments: {
@@ -179,4 +179,15 @@ struct ImmersiveView: View {
 #Preview {
     ImmersiveView()
         .previewLayout(.sizeThatFits)
+}
+
+
+extension ImmersiveView {
+    var environmentBasedProviders: [DataProvider] {
+        #if targetEnvironment(simulator)
+        return [self.worldTrackingProvider]
+        #else
+        return [self.worldTrackingProvider, self.handTrackingProvider]
+        #endif
+    }
 }
