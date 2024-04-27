@@ -48,6 +48,20 @@ class TargetEntity: Entity {
         self.position += directionVector * speed
     }
 
+    func playSqueezeAnimation(duration: TimeInterval) {
+        guard let orbitEntity = self.findEntity(named: "orbit") else {
+            assertionFailure("Target doesn't have orbit entity")
+            return
+        }
+
+        var transform = orbitEntity.transform
+        transform.scale = [0.3, 0.3, 0.3]
+        let animationDefinition = FromToByAnimation(to: transform, duration: duration, timing: .easeIn, bindTarget: .transform)
+        let animationViewDefinition = AnimationView(source: animationDefinition)
+        let animationResource = try! AnimationResource.generate(with: animationViewDefinition)
+        orbitEntity.playAnimation(animationResource)
+    }
+
     static func loadFromRealityComposerScene(_ configuration: TargetEntityConfiguration) async -> Entity {
         let scene = try? await Entity(named: configuration.punch.entityName, in: realityKitContentBundle)
         //if let entity = scene?.findEntity(named: configuration.punch.entityName)?.clone(recursive: true)

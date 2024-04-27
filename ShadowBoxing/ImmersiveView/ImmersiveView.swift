@@ -12,7 +12,6 @@ struct ImmersiveView: View {
     @Environment(GameModel.self) var gameModel
     @State private var collisionSubscription: EventSubscription?
     @State private var sceneSubscription: EventSubscription?
-    @State private var sceneSubscription2: EventSubscription?
     @State private var timer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
 
     @State var spaceOrigin = Entity()
@@ -66,16 +65,11 @@ struct ImmersiveView: View {
 
         self.gameModel.handlePunch(targetEntity.configuration.punch)
 
-        let orbitEntity = targetEntity.findEntity(named: "orbit")!
-        var transform = orbitEntity.transform
-        transform.scale = [0.3, 0.3, 0.3]
-        let animationDefinition = FromToByAnimation(to: transform, duration: 0.3, timing: .easeIn, bindTarget: .transform)
-        let animationViewDefinition = AnimationView(source: animationDefinition)
-        let animationResource = try! AnimationResource.generate(with: animationViewDefinition)
-        orbitEntity.playAnimation(animationResource)
+        let animationDuration = 0.3
+        targetEntity.playSqueezeAnimation(duration: animationDuration)
 
         Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 300_000_000)
+            try? await Task.sleep(nanoseconds: UInt64(animationDuration * 1_000_000_000))
             targetEntity.removeFromParent()
         }
 
