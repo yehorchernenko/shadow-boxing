@@ -1,6 +1,7 @@
 {
   "images" : [
     {
+      "filename" : "icon_bg.jpg",
       "idiom" : "vision",
       "scale" : "2x"
     }
