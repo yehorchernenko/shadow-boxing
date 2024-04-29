@@ -212,7 +212,9 @@ struct ImmersiveView: View {
     func spawnTarget(for punch: Punch) async throws {
         let speed = self.gameModel.round?.level.speed ?? Level.easy.speed
         let target = await TargetEntity(configuration: .init(speed: speed, punch: punch))
-        target.position = SIMD3<Float>(0, 1, -7)
+        target.position = SIMD3<Float>(0, 
+                                       Float(Constants.saved.targetEntitySpawnHeight),
+                                       Float(Constants.saved.targetEntitySpawnDistance))
 
         self.spaceOrigin.addChild(target)
     }
@@ -221,7 +223,9 @@ struct ImmersiveView: View {
     func spawnDodge() async throws {
         let speed = self.gameModel.round?.level.speed ?? Level.easy.speed
         let target = await DodgeEntity(speed: speed)
-        target.position = SIMD3<Float>(0, 1.5, -7)
+        target.position = SIMD3<Float>(0,
+                                       Float(Constants.saved.dodgeEntitySpawnHeight),
+                                       Float(Constants.saved.dodgeEntitySpawnDistance))
 
         self.spaceOrigin.addChild(target)
     }
