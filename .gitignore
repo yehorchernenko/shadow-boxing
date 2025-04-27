@@ -37,6 +37,7 @@ DerivedData/
 
 # Package Manager
 Packages/
+!Packages/RealityKitContent/
 Package.resolved
 
 # Playgrounds

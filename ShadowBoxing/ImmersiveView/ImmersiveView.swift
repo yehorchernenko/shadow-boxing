@@ -77,7 +77,7 @@ struct ImmersiveView: View {
             for i in 0..<handJoints.count {
                 guard let position = handAnchor.handSkeleton?.joint(handJoints[i]) else { continue }
                 let worldPos = handAnchor.originFromAnchorTransform * position.anchorFromJointTransform
-                await self.handJointEntities[i + start].setTransformMatrix(worldPos, relativeTo: nil)
+                self.handJointEntities[i + start].setTransformMatrix(worldPos, relativeTo: nil)
             }
         }
     }

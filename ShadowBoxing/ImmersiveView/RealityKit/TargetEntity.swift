@@ -51,7 +51,7 @@ class TargetEntity: Entity {
 
     func playSqueezeAnimation(duration: TimeInterval) {
         guard let orbitEntity = self.findEntity(named: "orbit") else {
-            assertionFailure("Target doesn't have orbit entity")
+//            assertionFailure("Target doesn't have orbit entity")
             return
         }
 
