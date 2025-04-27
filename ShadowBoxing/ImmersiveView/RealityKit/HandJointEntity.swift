@@ -7,13 +7,13 @@ class HandJointEntity: Entity {
     private let modelEntity: Entity
 
     required init() {
-        self.modelEntity = ModelEntity(mesh: .generateSphere(radius: 0.005),
-                                       materials: [SimpleMaterial(color: .blue, isMetallic: false)])
+        self.modelEntity = ModelEntity(mesh: .generateSphere(radius: 0.01),
+                                       materials: [SimpleMaterial(color: .white, isMetallic: false)])
 
 
         super.init()
 
-        /// Model is visible for users, doesn't participate in collisions
+        /// Model is visible for users, doesn't participate in collisions\
         self.addChild(self.modelEntity)
 
         /// Setup collision

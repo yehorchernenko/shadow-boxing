@@ -11,5 +11,14 @@
 		<key>UISceneConfigurations</key>
 		<dict/>
 	</dict>
+	<key>NSWorldSensingUsageDescription</key>
+<string>We use world sensing to place content accurately in your environment.</string>
+
+<key>NSHandsTrackingUsageDescription</key>
+<string>We use hand tracking to allow natural interactions with objects.</string>
+
+<key>NSEnterpriseMCAMUsageDescription</key>
+<string>We use motion capture data to enhance immersive experiences.</string>
+
 </dict>
 </plist>

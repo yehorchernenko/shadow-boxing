@@ -16,27 +16,21 @@ struct ImmersiveView: View {
 
     @State var spaceOrigin = Entity()
     @State private var bodyEntity = BodyEntity()
-    private let handJointEntities = Array(repeating: HandJointEntity(), count: 16)
-
-    let handJoints: [HandSkeleton.JointName] = [
-        .thumbIntermediateBase, .indexFingerIntermediateBase, .middleFingerIntermediateBase, .ringFingerIntermediateBase, .littleFingerIntermediateBase,
-        .thumbKnuckle, .indexFingerKnuckle, .middleFingerKnuckle, .ringFingerKnuckle, .littleFingerKnuckle,
-        .indexFingerMetacarpal, .middleFingerMetacarpal, .ringFingerMetacarpal, .littleFingerMetacarpal,
-        .wrist, .forearmWrist,
-    ]
 
     var body: some View {
         RealityView { content, attachments in
             content.add(spaceOrigin)
             content.add(bodyEntity)
+            self.attachHandEntities(content)
+            
             self.setupScoreAttachment(attachments)
 
             self.collisionSubscription = content.subscribe(to: CollisionEvents.Began.self, self.handleCollision(event:))
             self.sceneSubscription = content.subscribe(to: SceneEvents.Update.self, self.handleSceneUpdate(event:))
 
             Task {
+                HandTrackingSystem.handTracking = self.handTrackingProvider
                 try await self.arSession.run(self.environmentBasedProviders)
-                await self.processHandUpdates()
             }
 
         } attachments: {
@@ -55,7 +49,7 @@ struct ImmersiveView: View {
             }
 
             await self.attachTargets(for: round.steps)
-            self.attachHandEntities()
+//            self.attachHandEntities()
         }
     }
 
@@ -64,21 +58,6 @@ struct ImmersiveView: View {
             scoreView.position = simd_float3(-0.5,1,-1)
             scoreView.components.set(BillboardComponent())
             spaceOrigin.addChild(scoreView)
-        }
-    }
-
-    private func processHandUpdates() async {
-        for await update in self.handTrackingProvider.anchorUpdates {
-            let handAnchor = update.anchor
-            guard handAnchor.isTracked else { continue }
-
-            // Update ball positions for each joint. If it's the left hand, start at 0, if it's the right hand, start at 16.
-            let start = handAnchor.chirality == .left ? 0 : handJoints.count
-            for i in 0..<handJoints.count {
-                guard let position = handAnchor.handSkeleton?.joint(handJoints[i]) else { continue }
-                let worldPos = handAnchor.originFromAnchorTransform * position.anchorFromJointTransform
-                self.handJointEntities[i + start].setTransformMatrix(worldPos, relativeTo: nil)
-            }
         }
     }
 
@@ -202,9 +181,18 @@ struct ImmersiveView: View {
         Log.roundStep.info("Round duration: \(steps.duration) ms")
     }
 
-    private func attachHandEntities() {
+    private func attachHandEntities(_ content: RealityViewContent) {
         #if !targetEnvironment(simulator)
-        self.handJointEntities.forEach { self.spaceOrigin.addChild($0) }
+        // Add the left hand.
+        let leftHand = Entity()
+        leftHand.components.set(HandTrackingComponent(chirality: .left, handTrackingProvider: self.handTrackingProvider))
+        content.add(leftHand)
+
+        // Add the right hand.
+        let rightHand = Entity()
+        rightHand.components.set(HandTrackingComponent(chirality: .right, handTrackingProvider: self.handTrackingProvider))
+        content.add(rightHand)
+
         #endif
     }
 

@@ -8,7 +8,8 @@ class DodgeEntity: Entity {
     private let speed: Float
 
     init(speed: Float) async {
-        self.modelEntity = await Self.loadFromRealityComposerScene("dodge")
+//        self.modelEntity = await Self.loadFromRealityComposerScene("dodge")
+        self.modelEntity = Self.buildTargetProgramatically()
         self.speed = speed
         
         super.init()
@@ -63,5 +64,12 @@ class DodgeEntity: Entity {
             let target = ModelEntity(mesh: mesh, materials: [mat])
             return target
         }
+    }
+    
+    static func buildTargetProgramatically() -> Entity {
+        let mesh = MeshResource.generateBox(width: 1.25, height: 0.25, depth: 0.25)
+        let mat = SimpleMaterial(color: .blue, isMetallic: false)
+        let target = ModelEntity(mesh: mesh, materials: [mat])
+        return target
     }
 }
