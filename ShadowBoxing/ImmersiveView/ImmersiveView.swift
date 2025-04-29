@@ -155,9 +155,9 @@ struct ImmersiveView: View {
         // Update body position. Set to device position
         // Note: We use device position instead of tracking AnchorEntity.Head, because
         // AnchorEntity.Head doesn't participate in collisions detection.
-        guard let devicePosition = self.worldTrackingProvider
+        guard let deviceAnchor = self.worldTrackingProvider
             .queryDeviceAnchor(atTimestamp: Date.now.timeIntervalSince1970) else { return }
-        self.bodyEntity.transform = Transform(matrix: devicePosition.originFromAnchorTransform)
+        self.bodyEntity.transform = Transform(matrix: deviceAnchor.originFromAnchorTransform)
     }
 
     private func attachTargets(for steps: [RoundStep]) async {

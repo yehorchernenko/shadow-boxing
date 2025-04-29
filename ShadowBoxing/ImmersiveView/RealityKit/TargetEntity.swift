@@ -11,16 +11,15 @@ class TargetEntity: Entity {
     /// Noise required to simulate punches that goes to different parts of the body
     /// The of noise is a bit less than body size, to ensure that the punch will hit the body
     private let positionNoise = SIMD3<Float>(
-//        .random(in: -0.45...0.45),
-//        .random(in: -0.45...0.45),
-        0,
-        0,
+        .random(in: -0.15...0.15),
+        .random(in: -0.15...0.15),
         0 // This coordinate shouldn't have noise to avoid overlaps
     )
 
     init(configuration: TargetEntityConfiguration) async {
         self.configuration = configuration
-        self.modelEntity = await Self.loadFromRealityComposerScene(configuration)
+        //self.modelEntity = await Self.loadFromRealityComposerScene(configuration)
+        self.modelEntity = Self.buildTargetProgramatically(configuration)
 
         super.init()
 
@@ -28,7 +27,7 @@ class TargetEntity: Entity {
         self.addChild(self.modelEntity)
 
         /// Setup collision
-        let collisionShape = ShapeResource.generateSphere(radius: 0.3)
+        let collisionShape = ShapeResource.generateSphere(radius: 0.15)
         let collisionComponent = CollisionComponent(shapes: [collisionShape])
         self.components.set(collisionComponent)
         self.components.set(InputTargetComponent())
@@ -52,10 +51,12 @@ class TargetEntity: Entity {
     }
 
     func playSqueezeAnimation(duration: TimeInterval) {
-        guard let orbitEntity = self.findEntity(named: "orbit") else {
-//            assertionFailure("Target doesn't have orbit entity")
-            return
-        }
+        let orbitEntity = self
+        /// It was used for entity loaded from Reality Composer package that has a node that can be animated
+        // guard let orbitEntity = self.findEntity(named: "orbit") else {
+        //    assertionFailure("Target doesn't have orbit entity")
+        //    return
+        // }
 
         var transform = orbitEntity.transform
         transform.scale = [0.3, 0.3, 0.3]
@@ -67,15 +68,51 @@ class TargetEntity: Entity {
 
     static func loadFromRealityComposerScene(_ configuration: TargetEntityConfiguration) async -> Entity {
         let scene = try? await Entity(named: configuration.punch.entityName, in: realityKitContentBundle)
-        //if let entity = scene?.findEntity(named: configuration.punch.entityName)?.clone(recursive: true)
+        
         if let entity = scene  {
             return entity
         } else {
-            let mesh = MeshResource.generateSphere(radius: 0.3)
+            let mesh = MeshResource.generateSphere(radius: 0.15)
             let mat = SimpleMaterial(color: .blue, isMetallic: false)
             let target = ModelEntity(mesh: mesh, materials: [mat])
             return target
         }
+    }
+    
+    static func buildTargetProgramatically(_ configuration: TargetEntityConfiguration) -> Entity {
+        let mesh: MeshResource
+        switch configuration.punch.kind {
+        case .jab, .cross:
+            mesh = MeshResource.generateSphere(radius: 0.15)
+        case .hook, .uppercut:
+            mesh = MeshResource.generateCone(height: 0.4, radius: 0.15)
+        }
+        
+        let material: SimpleMaterial
+        switch configuration.punch.hand {
+        case .left:
+            material = SimpleMaterial(color: .green, isMetallic: false)
+        case .right:
+            material = SimpleMaterial(color: .red, isMetallic: false)
+        }
+        
+        let target = ModelEntity(mesh: mesh, materials: [material])
+        
+        // rotate direction of cones
+        switch (configuration.punch.kind, configuration.punch.hand) {
+        case (.hook, .left):
+            let angle: Float = -.pi / 2
+            let rotation = simd_quatf(angle: angle, axis: [0, 0, 1])
+            target.transform.rotation = rotation * target.transform.rotation
+        case (.hook, .right):
+            let angle: Float = .pi / 2
+            let rotation = simd_quatf(angle: angle, axis: [0, 0, 1])
+            target.transform.rotation = rotation * target.transform.rotation
+        default:
+            break
+        }
+        
+        return target
     }
 }
 
