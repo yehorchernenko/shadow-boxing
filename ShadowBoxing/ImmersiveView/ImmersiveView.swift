@@ -140,6 +140,9 @@ struct ImmersiveView: View {
     private func handleSceneUpdate(event: SceneEvents.Update) {
         // Movement targets towards user body (device position)
         for movingEntity in self.spaceOrigin.children.compactMap({ $0 as? TargetEntity }) {
+            var targetPosition = self.bodyEntity.position
+            // Make targets lower
+            targetPosition.y -= Constants.saved.targetUserHeightOffest
             movingEntity.moveWithNoiseTo(self.bodyEntity.position)
         }
 
@@ -156,7 +159,7 @@ struct ImmersiveView: View {
         // Note: We use device position instead of tracking AnchorEntity.Head, because
         // AnchorEntity.Head doesn't participate in collisions detection.
         guard let deviceAnchor = self.worldTrackingProvider
-            .queryDeviceAnchor(atTimestamp: Date.now.timeIntervalSince1970) else { return }
+            .queryDeviceAnchor(atTimestamp: CACurrentMediaTime()) else { return }
         self.bodyEntity.transform = Transform(matrix: deviceAnchor.originFromAnchorTransform)
     }
 

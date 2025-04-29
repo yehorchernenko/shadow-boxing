@@ -6,14 +6,14 @@ class BodyEntity: Entity {
     private let modelEntity: ModelEntity?
 
     required init() {
-        let bodyMesh = MeshResource.generateBox(size: 0.5)
+        let bodyMesh = MeshResource.generateBox(width: 0.5, height: 1.5, depth: 0.5)
         let bodyModel = ModelEntity(mesh: bodyMesh, materials: [SimpleMaterial(color: .blue, isMetallic: false)])
         self.modelEntity = bodyModel
 
         super.init()
 
         /// User body shape, not visible, participates in collisions
-        let collisionShape = ShapeResource.generateBox(width: 0.5, height: 0.5, depth: 0.5)
+        let collisionShape = ShapeResource.generateBox(width: 0.5, height: 1.5, depth: 0.5)
         let collisionComponent = CollisionComponent(shapes: [collisionShape])
         self.components.set(collisionComponent)
 
