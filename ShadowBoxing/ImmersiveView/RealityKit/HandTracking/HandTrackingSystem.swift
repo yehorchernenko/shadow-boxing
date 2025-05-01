@@ -61,6 +61,7 @@ struct HandTrackingSystem: System {
 
             // Iterate through all of the anchors on the hand skeleton.
             if let handSkeleton = handAnchor.handSkeleton {
+                let isFist = self.isFist(handSkeleton)
                 for (jointName, jointEntity) in handComponent.fingers {
                     /// The current transform of the person's hand joint.
                     let anchorFromJointTransform = handSkeleton.joint(jointName).anchorFromJointTransform
@@ -70,6 +71,12 @@ struct HandTrackingSystem: System {
                         handAnchor.originFromAnchorTransform * anchorFromJointTransform,
                         relativeTo: nil
                     )
+
+                    // Update joint color based on gesture
+                    if let modelEntity = jointEntity as? HandJointEntity {
+                        modelEntity.updateColor(isFist: isFist)
+                        modelEntity.updateCollisionComponent(isFist: isFist)
+                    }
                 }
             }
         }
@@ -92,5 +99,21 @@ struct HandTrackingSystem: System {
 
         // Apply the updated hand component back to the hand entity.
         handEntity.components.set(handComponent)
+    }
+
+    func isFist(_ handSkeleton: HandSkeleton) -> Bool {
+        let wristPos = SIMD3<Float>(0,0,0)
+
+        let fingertipNames: [HandSkeleton.JointName] = [
+            .thumbTip, .indexFingerTip, .middleFingerTip, .ringFingerTip, .littleFingerTip
+        ]
+
+        let threshold: Float = 0.15 // 1.5 cm
+
+        return fingertipNames.allSatisfy { jointName in
+            let tipPos = handSkeleton.joint(jointName).anchorFromJointTransform.columns.3[SIMD3(0, 1, 2)]
+            let distance = simd_distance(tipPos, wristPos)
+            return distance < threshold
+        }
     }
 }

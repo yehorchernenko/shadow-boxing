@@ -1,5 +1,6 @@
 import RealityKit
 
+// Consider to replace with AnchorEntity(.head)
 class BodyEntity: Entity {
     /// The body of the user. Visual representation of the user's body. Visible only in debug.
     /// Doesn't participate in collisions.
