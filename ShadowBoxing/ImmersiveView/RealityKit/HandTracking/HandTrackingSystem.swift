@@ -1,5 +1,5 @@
 /*
-See the LICENSE.txt file for this sample’s licensing information.
+See the LICENSE.txt file for this sample's licensing information.
 
 Abstract:
 A system that updates entities that have hand-tracking components.
@@ -12,14 +12,17 @@ struct HandTrackingSystem: System {
     /// The provider instance for hand-tracking.
     static var handTracking: HandTrackingProvider!
     
-    /// The most recent anchor that the provider detects on the left hand.
-    static var latestLeftHand: HandAnchor?
-    static var lastLeftHandPosition: SIMD3<Float>?
-    static var lastLeftHandMovementDirection = [MovementDirection]()
-
-    /// The most recent anchor that the provider detects on the right hand.
-    static var latestRightHand: HandAnchor?
-
+    /// Structure to hold all state related to a hand
+    struct HandState {
+        var anchor: HandAnchor?
+        var lastPosition: SIMD3<Float>?
+        var movementDirection = [MovementDirection]()
+    }
+    
+    /// State for each hand
+    static var leftHand = HandState()
+    static var rightHand = HandState()
+    
     init(scene: RealityKit.Scene) {
         Task { await Self.runTracking() }
     }
@@ -31,9 +34,9 @@ struct HandTrackingSystem: System {
             // Check whether the anchor is on the left or right hand.
             switch anchorUpdate.anchor.chirality {
             case .left:
-                self.latestLeftHand = anchorUpdate.anchor
+                self.leftHand.anchor = anchorUpdate.anchor
             case .right:
-                self.latestRightHand = anchorUpdate.anchor
+                self.rightHand.anchor = anchorUpdate.anchor
             }
         }
     }
@@ -54,16 +57,14 @@ struct HandTrackingSystem: System {
                 self.addJoints(to: entity, handComponent: &handComponent)
             }
 
-            // Get the hand anchor for the component, depending on its chirality.
-            guard let handAnchor: HandAnchor = switch handComponent.chirality {
-                case .left: Self.latestLeftHand
-                case .right: Self.latestRightHand
-                default: nil
-            } else { continue }
+            // Get the hand state for the component, depending on its chirality.
+            let handState: HandState = handComponent.chirality == .left ? Self.leftHand : Self.rightHand
             
-            if handComponent.chirality == .left {
-                leftHandMovingDirection(handAnchor)
-            }
+            // Get the hand anchor for the component
+            guard let handAnchor = handState.anchor else { continue }
+            
+            // Track hand movement
+            trackHandMovement(handAnchor, chirality: handComponent.chirality)
 
             // Iterate through all of the anchors on the hand skeleton.
             if let handSkeleton = handAnchor.handSkeleton {
@@ -82,15 +83,12 @@ struct HandTrackingSystem: System {
                     if let modelEntity = jointEntity as? HandJointEntity {
                         modelEntity.updateColor(isFist: isFist)
                         modelEntity.updateCollisionComponent(isFist: isFist)
-                        if handComponent.chirality == .left {
-                            modelEntity.setMovementDirection(Self.lastLeftHandMovementDirection)
-                        }
-                    }
-                    
-//                    if handComponent.chirality == .left, let modelEntity = jointEntity as? HandJointEntity {
-//                        leftHandMovingDirection(handAnchor)
                         
-//                    }
+                        // Apply movement direction to the joint entity
+                        let directions = handComponent.chirality == .left ? 
+                            Self.leftHand.movementDirection : Self.rightHand.movementDirection
+                        modelEntity.setMovementDirection(directions)
+                    }
                 }
             }
         }
@@ -131,23 +129,22 @@ struct HandTrackingSystem: System {
         }
     }
     
-    func leftHandMovingDirection(_ handAnchor: HandAnchor) {
+    func trackHandMovement(_ handAnchor: HandAnchor, chirality:  AnchoringComponent.Target.Chirality) {
+        // Reference to the appropriate hand state
+        let handState = chirality == .left ? Self.leftHand : Self.rightHand
+        
         // Get current wrist position from the hand anchor
-        let currentPosition = SIMD3<Float>(
-            handAnchor.originFromAnchorTransform.columns.3.x,
-            handAnchor.originFromAnchorTransform.columns.3.y,
-            handAnchor.originFromAnchorTransform.columns.3.z
-        )
+        let currentPosition = handAnchor.originFromAnchorTransform.columns.3[SIMD3(0, 1, 2)]
         
         var currentDirection = [MovementDirection]()
         
         // Check if we have a previous position to compare with
-        if let previousPosition = Self.lastLeftHandPosition {
+        if let previousPosition = handState.lastPosition {
             // Calculate the movement vector
             let movement = currentPosition - previousPosition
             
             // Define threshold to avoid detecting small unintentional movements
-            let threshold: Float = 0.005 // 50mm
+            let threshold: Float = 0.005 // 5mm
             
             // Horizontal movement (left/right)
             if abs(movement.x) > threshold {
@@ -167,20 +164,15 @@ struct HandTrackingSystem: System {
                 let depthDirection: MovementDirection = movement.z < 0 ? .forward : .backward
                 currentDirection.append(depthDirection)
             }
-            
-            
-            Self.lastLeftHandMovementDirection = currentDirection
         }
         
         // Save current position for next frame comparison
-        Self.lastLeftHandPosition = currentPosition
-    }
-}
-
-// Extension for rounding to decimal places
-extension Float {
-    func rounded(to places: Int) -> Float {
-        let divisor = pow(10.0, Float(places))
-        return (self * divisor).rounded() / divisor
+        if chirality == .left {
+            Self.leftHand.movementDirection = currentDirection
+            Self.leftHand.lastPosition = currentPosition
+        } else {
+            Self.rightHand.movementDirection = currentDirection
+            Self.rightHand.lastPosition = currentPosition
+        }
     }
 }
