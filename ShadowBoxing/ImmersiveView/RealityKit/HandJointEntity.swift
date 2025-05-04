@@ -10,13 +10,14 @@ class HandJointEntity: Entity {
     
     /// Model is visible for users, doesn't participate in collisions
     private let modelEntity: ModelEntity
+    let chirality: AnchoringComponent.Target.Chirality
     var movementDirection = [MovementDirection]()
 
-    required init() {
+    init(chirality: AnchoringComponent.Target.Chirality) {
         self.modelEntity = ModelEntity(mesh: .generateSphere(radius: 0.01),
                                        materials: [SimpleMaterial(color: .white, isMetallic: false)])
 
-
+        self.chirality = chirality
         super.init()
 
         /// Model is visible for users, doesn't participate in collisions\
@@ -26,6 +27,10 @@ class HandJointEntity: Entity {
         self.components.set(Self.defaultCollisionComponent)
 
         self.name = ImmersiveConstants.kHandJointEntityName
+    }
+    
+    @MainActor @preconcurrency required init() {
+        fatalError("init() has not been implemented")
     }
     
     func updateColor(isFist: Bool) {

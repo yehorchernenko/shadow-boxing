@@ -102,7 +102,7 @@ struct HandTrackingSystem: System {
         // For each joint, create a sphere and attach it to the fingers.
         for bone in HandJointsMap.joints {
             // Add a duplication of the sphere entity to the hand entity.
-            let newJoint = HandJointEntity() //sphereEntity.clone(recursive: false)
+            let newJoint = HandJointEntity(chirality: handComponent.chirality)
             handEntity.addChild(newJoint)
 
             // Attach the sphere to the finger.

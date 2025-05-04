@@ -65,10 +65,29 @@ struct ImmersiveView: View {
     private func handleHandTargetCollision(_ event: CollisionEvents.Began) {
         guard let targetEntity = event.entity(of: TargetEntity.self),
               !targetEntity.shouldIgnoreCollision,
-        let handJointEntity = event.entity(of: HandJointEntity.self) else { return }
+              let handJointEntity = event.entity(of: HandJointEntity.self) else { return }
         
-        guard handJointEntity.movementDirection.contains(.forward) && targetEntity.configuration.punch.kind == .jab else { return }
-
+        // Extract needed information
+        let punch = targetEntity.configuration.punch
+        let handChirality = handJointEntity.chirality
+        let movements = handJointEntity.movementDirection
+        
+        // Check if the hand matches the punch's expected hand
+        let isCorrectHand = (punch.hand == .left && handChirality == .left) || 
+                           (punch.hand == .right && handChirality == .right)
+        
+        if !isCorrectHand {
+            return // Wrong hand, don't handle collision
+        }
+        
+        // Check if movement pattern matches expected punch type
+        let isCorrectMovement = matchesExpectedMovement(movements: movements, punchKind: punch.kind)
+        
+        if !isCorrectMovement {
+            return // Wrong movement, don't handle collision
+        }
+        
+        // All conditions met, handle the collision
         self.bodyEntity.playAudio(Sounds.Punch.hit.audioResource)
         self.gameModel.handlePunch(targetEntity.configuration.punch)
 
@@ -89,6 +108,28 @@ struct ImmersiveView: View {
         }
 
         Log.collision.info("Hand collision: \(targetEntity.name)")
+    }
+    
+    /// Determines if the movement pattern matches the expected punch type
+    private func matchesExpectedMovement(movements: [MovementDirection], punchKind: Punch.Kind) -> Bool {
+        switch punchKind {
+        case .jab:
+            // Jab is primarily a forward movement
+            return movements.contains(.forward)
+            
+        case .cross:
+            // Cross is also primarily a forward movement, just with the rear hand
+            return movements.contains(.forward)
+            
+        case .hook:
+            // Left hand hook: primarily left movement, possibly with upward/forward component
+            // Right hand hook: primarily right movement, possibly with upward/forward component
+            return movements.contains(.left) || movements.contains(.right)
+            
+        case .uppercut:
+            // Uppercut is primarily an upward movement
+            return movements.contains(.up)
+        }
     }
 
     /// Detects collisions between user body and entities
