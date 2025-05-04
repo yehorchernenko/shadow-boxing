@@ -11,7 +11,7 @@ class HandJointEntity: Entity {
     /// Model is visible for users, doesn't participate in collisions
     private let modelEntity: ModelEntity
     let chirality: AnchoringComponent.Target.Chirality
-    var movementDirection = [MovementDirection]()
+    var movementDirection = Set<MovementDirection>()
 
     init(chirality: AnchoringComponent.Target.Chirality) {
         self.modelEntity = ModelEntity(mesh: .generateSphere(radius: 0.01),
@@ -47,6 +47,6 @@ class HandJointEntity: Entity {
     }
     
     func setMovementDirection(_ movementDirection: [MovementDirection]) {
-        self.movementDirection = movementDirection
+        self.movementDirection = Set(movementDirection)
     }
 }

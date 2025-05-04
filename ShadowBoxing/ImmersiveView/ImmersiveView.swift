@@ -13,7 +13,7 @@ struct ImmersiveView: View {
     @Environment(GameModel.self) var gameModel
     @State private var collisionSubscription: EventSubscription?
     @State private var sceneSubscription: EventSubscription?
-    @State private var feedbackEntity: Entity?
+    @State private var feedbackManager: RoundFeedbackManager?
 
     @State var spaceOrigin = Entity()
     @State private var bodyEntity = BodyEntity()
@@ -25,6 +25,9 @@ struct ImmersiveView: View {
             self.attachHandEntities(content)
             
             self.setupScoreAttachment(attachments)
+            
+            // Initialize feedback manager
+            self.feedbackManager = RoundFeedbackManager(parent: self.spaceOrigin)
 
             self.collisionSubscription = content.subscribe(to: CollisionEvents.Began.self, self.handleCollision(event:))
             self.sceneSubscription = content.subscribe(to: SceneEvents.Update.self, self.handleSceneUpdate(event:))
@@ -56,7 +59,7 @@ struct ImmersiveView: View {
 
     private func setupScoreAttachment(_ attachments: RealityViewAttachments) {
         if let scoreView = attachments.entity(for: kScoreAttachmentID) {
-            scoreView.position = simd_float3(-0.5,1,-1)
+            scoreView.position = simd_float3(-0.5,1.5,-1)
             scoreView.components.set(BillboardComponent())
             spaceOrigin.addChild(scoreView)
         }
@@ -79,7 +82,7 @@ struct ImmersiveView: View {
         
         if !isCorrectHand {
             // Wrong hand feedback
-            showFeedbackText("Wrong hand!", color: .red)
+            feedbackManager?.showText("Wrong hand!", color: .yellow)
             return // Wrong hand, don't handle collision
         }
         
@@ -88,7 +91,7 @@ struct ImmersiveView: View {
         
         if !isCorrectMovement {
             // Wrong movement feedback
-            showFeedbackText("Wrong punch!", color: .red)
+            feedbackManager?.showText("Wrong punch!", color: .yellow)
             return // Wrong movement, don't handle collision
         }
         
@@ -115,63 +118,15 @@ struct ImmersiveView: View {
         Log.collision.info("Hand collision: \(targetEntity.name)")
     }
     
-    /// Shows immersive 3D text feedback in the scene
-    private func showFeedbackText(_ message: String, color: UIColor) {
-        // Remove any existing feedback entity
-        feedbackEntity?.removeFromParent()
-        
-        // Create text mesh with the feedback message
-        let textMesh = MeshResource.generateText(
-            message,
-            extrusionDepth: 0.01,
-            font: .systemFont(ofSize: 0.1, weight: .bold),
-            containerFrame: .zero,
-            alignment: .center,
-            lineBreakMode: .byWordWrapping
-        )
-        
-        // Create material with the specified color
-        let material = SimpleMaterial(color: color, isMetallic: false)
-        
-        // Create model entity with the text mesh and material
-        let textEntity = ModelEntity(mesh: textMesh, materials: [material])
-        
-        // Position the text in front of the user
-        textEntity.position = SIMD3<Float>(0, 1.5, -1)
-        
-        // Add billboard component to make text always face the user
-        textEntity.components.set(BillboardComponent())
-        
-        // Store reference to the feedback entity
-        feedbackEntity = textEntity
-        
-        // Add to the scene
-        spaceOrigin.addChild(textEntity)
-        
-        // Hide feedback after delay
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: UInt64(1.5 * 1_000_000_000)) // 1.5 seconds
-            textEntity.removeFromParent()
-            if feedbackEntity == textEntity {
-                feedbackEntity = nil
-            }
-        }
-    }
-    
     /// Determines if the movement pattern matches the expected punch type
-    private func matchesExpectedMovement(movements: [MovementDirection], punchKind: Punch.Kind) -> Bool {
+    private func matchesExpectedMovement(movements: Set<MovementDirection>, punchKind: Punch.Kind) -> Bool {
         switch punchKind {
-        case .jab:
+        case .jab,  .cross:
             // Jab is primarily a forward movement
-            return movements.contains(.forward)
-            
-        case .cross:
             // Cross is also primarily a forward movement, just with the rear hand
             return movements.contains(.forward)
             
         case .hook:
-            // Left hand hook: primarily left movement, possibly with upward/forward component
-            // Right hand hook: primarily right movement, possibly with upward/forward component
             return movements.contains(.left) || movements.contains(.right)
             
         case .uppercut:
