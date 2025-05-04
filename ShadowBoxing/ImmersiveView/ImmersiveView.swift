@@ -13,6 +13,7 @@ struct ImmersiveView: View {
     @Environment(GameModel.self) var gameModel
     @State private var collisionSubscription: EventSubscription?
     @State private var sceneSubscription: EventSubscription?
+    @State private var feedbackEntity: Entity?
 
     @State var spaceOrigin = Entity()
     @State private var bodyEntity = BodyEntity()
@@ -77,6 +78,8 @@ struct ImmersiveView: View {
                            (punch.hand == .right && handChirality == .right)
         
         if !isCorrectHand {
+            // Wrong hand feedback
+            showFeedbackText("Wrong hand!", color: .red)
             return // Wrong hand, don't handle collision
         }
         
@@ -84,6 +87,8 @@ struct ImmersiveView: View {
         let isCorrectMovement = matchesExpectedMovement(movements: movements, punchKind: punch.kind)
         
         if !isCorrectMovement {
+            // Wrong movement feedback
+            showFeedbackText("Wrong punch!", color: .red)
             return // Wrong movement, don't handle collision
         }
         
@@ -108,6 +113,49 @@ struct ImmersiveView: View {
         }
 
         Log.collision.info("Hand collision: \(targetEntity.name)")
+    }
+    
+    /// Shows immersive 3D text feedback in the scene
+    private func showFeedbackText(_ message: String, color: UIColor) {
+        // Remove any existing feedback entity
+        feedbackEntity?.removeFromParent()
+        
+        // Create text mesh with the feedback message
+        let textMesh = MeshResource.generateText(
+            message,
+            extrusionDepth: 0.01,
+            font: .systemFont(ofSize: 0.1, weight: .bold),
+            containerFrame: .zero,
+            alignment: .center,
+            lineBreakMode: .byWordWrapping
+        )
+        
+        // Create material with the specified color
+        let material = SimpleMaterial(color: color, isMetallic: false)
+        
+        // Create model entity with the text mesh and material
+        let textEntity = ModelEntity(mesh: textMesh, materials: [material])
+        
+        // Position the text in front of the user
+        textEntity.position = SIMD3<Float>(0, 1.5, -1)
+        
+        // Add billboard component to make text always face the user
+        textEntity.components.set(BillboardComponent())
+        
+        // Store reference to the feedback entity
+        feedbackEntity = textEntity
+        
+        // Add to the scene
+        spaceOrigin.addChild(textEntity)
+        
+        // Hide feedback after delay
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64(1.5 * 1_000_000_000)) // 1.5 seconds
+            textEntity.removeFromParent()
+            if feedbackEntity == textEntity {
+                feedbackEntity = nil
+            }
+        }
     }
     
     /// Determines if the movement pattern matches the expected punch type
@@ -157,7 +205,6 @@ struct ImmersiveView: View {
     }
 
     private func handleBodyDodgeCollision(_ event: CollisionEvents.Began) {
-        self.bodyEntity.playAudio(Sounds.Dodge.hit.audioResource)
         self.gameModel.missedCombo()
 
         // Remove dodges after collisions
@@ -172,7 +219,6 @@ struct ImmersiveView: View {
             return
         }
 
-        self.bodyEntity.playAudio(Sounds.Punch.missed.audioResource)
         self.gameModel.missedCombo()
 
         // Remove targets after collisions
