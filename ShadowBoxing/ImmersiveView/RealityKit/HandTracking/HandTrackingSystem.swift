@@ -14,6 +14,8 @@ struct HandTrackingSystem: System {
     
     /// The most recent anchor that the provider detects on the left hand.
     static var latestLeftHand: HandAnchor?
+    static var lastLeftHandPosition: SIMD3<Float>?
+    static var lastLeftHandMovementDirection = [MovementDirection]()
 
     /// The most recent anchor that the provider detects on the right hand.
     static var latestRightHand: HandAnchor?
@@ -58,6 +60,10 @@ struct HandTrackingSystem: System {
                 case .right: Self.latestRightHand
                 default: nil
             } else { continue }
+            
+            if handComponent.chirality == .left {
+                leftHandMovingDirection(handAnchor)
+            }
 
             // Iterate through all of the anchors on the hand skeleton.
             if let handSkeleton = handAnchor.handSkeleton {
@@ -76,7 +82,15 @@ struct HandTrackingSystem: System {
                     if let modelEntity = jointEntity as? HandJointEntity {
                         modelEntity.updateColor(isFist: isFist)
                         modelEntity.updateCollisionComponent(isFist: isFist)
+                        if handComponent.chirality == .left {
+                            modelEntity.setMovementDirection(Self.lastLeftHandMovementDirection)
+                        }
                     }
+                    
+//                    if handComponent.chirality == .left, let modelEntity = jointEntity as? HandJointEntity {
+//                        leftHandMovingDirection(handAnchor)
+                        
+//                    }
                 }
             }
         }
@@ -115,5 +129,58 @@ struct HandTrackingSystem: System {
             let distance = simd_distance(tipPos, wristPos)
             return distance < threshold
         }
+    }
+    
+    func leftHandMovingDirection(_ handAnchor: HandAnchor) {
+        // Get current wrist position from the hand anchor
+        let currentPosition = SIMD3<Float>(
+            handAnchor.originFromAnchorTransform.columns.3.x,
+            handAnchor.originFromAnchorTransform.columns.3.y,
+            handAnchor.originFromAnchorTransform.columns.3.z
+        )
+        
+        var currentDirection = [MovementDirection]()
+        
+        // Check if we have a previous position to compare with
+        if let previousPosition = Self.lastLeftHandPosition {
+            // Calculate the movement vector
+            let movement = currentPosition - previousPosition
+            
+            // Define threshold to avoid detecting small unintentional movements
+            let threshold: Float = 0.005 // 50mm
+            
+            // Horizontal movement (left/right)
+            if abs(movement.x) > threshold {
+                let horizontalDirection: MovementDirection = movement.x > 0 ? .right : .left
+                currentDirection.append(horizontalDirection)
+            }
+            
+            // Vertical movement (up/down)
+            if abs(movement.y) > threshold {
+                let verticalDirection: MovementDirection = movement.y > 0 ? .up : .down
+                currentDirection.append(verticalDirection)
+            }
+            
+            // Depth movement (forward/backward)
+            if abs(movement.z) > threshold {
+                // In RealityKit's coordinate system, negative Z is typically forward (toward the user)
+                let depthDirection: MovementDirection = movement.z < 0 ? .forward : .backward
+                currentDirection.append(depthDirection)
+            }
+            
+            
+            Self.lastLeftHandMovementDirection = currentDirection
+        }
+        
+        // Save current position for next frame comparison
+        Self.lastLeftHandPosition = currentPosition
+    }
+}
+
+// Extension for rounding to decimal places
+extension Float {
+    func rounded(to places: Int) -> Float {
+        let divisor = pow(10.0, Float(places))
+        return (self * divisor).rounded() / divisor
     }
 }

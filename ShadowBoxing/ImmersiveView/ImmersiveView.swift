@@ -66,6 +66,8 @@ struct ImmersiveView: View {
         guard let targetEntity = event.entity(of: TargetEntity.self),
               !targetEntity.shouldIgnoreCollision,
         let handJointEntity = event.entity(of: HandJointEntity.self) else { return }
+        
+        guard handJointEntity.movementDirection.contains(.forward) && targetEntity.configuration.punch.kind == .jab else { return }
 
         self.bodyEntity.playAudio(Sounds.Punch.hit.audioResource)
         self.gameModel.handlePunch(targetEntity.configuration.punch)

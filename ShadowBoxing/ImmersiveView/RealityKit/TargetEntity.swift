@@ -44,7 +44,6 @@ class TargetEntity: Entity {
     
     /// Moves the target to the given position with noise
     func moveWithNoiseTo(_ toPosition: SIMD3<Float>) {
-        
         let toEntityPosition = toPosition + self.positionNoise
         let directionVector = normalize(toEntityPosition - self.position)
         let speed: Float = self.configuration.speed

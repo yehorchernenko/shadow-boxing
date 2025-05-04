@@ -10,6 +10,7 @@ class HandJointEntity: Entity {
     
     /// Model is visible for users, doesn't participate in collisions
     private let modelEntity: ModelEntity
+    var movementDirection = [MovementDirection]()
 
     required init() {
         self.modelEntity = ModelEntity(mesh: .generateSphere(radius: 0.01),
@@ -38,5 +39,9 @@ class HandJointEntity: Entity {
         } else {
             self.components.remove(CollisionComponent.self)
         }
+    }
+    
+    func setMovementDirection(_ movementDirection: [MovementDirection]) {
+        self.movementDirection = movementDirection
     }
 }
