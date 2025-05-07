@@ -71,10 +71,27 @@ struct ImmersiveView: View {
               !targetEntity.shouldIgnoreCollision,
               let handJointEntity = event.entity(of: HandJointEntity.self) else { return }
         
+        //
+        let animationDuration = 0.3
+        
+        defer {
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(animationDuration))
+                targetEntity.removeFromParent()
+
+                #if targetEnvironment(simulator)
+                handJointEntity.removeFromParent()
+                #endif
+            }
+        }
+        
         // Extract needed information
         let punch = targetEntity.configuration.punch
         let handChirality = handJointEntity.chirality
         let movements = handJointEntity.movementDirection
+        
+        // TODO: For simulator just ignore this
+        #if !targetEnvironment(simulator)
         
         // Check if the hand matches the punch's expected hand
         let isCorrectHand = (punch.hand == .left && handChirality == .left) || 
@@ -94,26 +111,17 @@ struct ImmersiveView: View {
             feedbackManager?.showText("Wrong punch!", color: .yellow)
             return // Wrong movement, don't handle collision
         }
+        #endif
         
         // All conditions met, handle the collision
         self.bodyEntity.playAudio(Sounds.Punch.hit.audioResource)
         self.gameModel.handlePunch(targetEntity.configuration.punch)
-
-        let animationDuration = 0.3
         targetEntity.playSqueezeAnimation(duration: animationDuration)
+        
         // Prevent further collisions with the same target.
         // Produces crash - targetEntity.components.remove(CollisionComponent.self)
         // Use a flag to ignore collisions instead.
         targetEntity.shouldIgnoreCollision = true
-
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: UInt64(animationDuration * 1_000_000_000))
-            targetEntity.removeFromParent()
-
-            #if targetEnvironment(simulator)
-            handJointEntity.removeFromParent()
-            #endif
-        }
 
         Log.collision.info("Hand collision: \(targetEntity.name)")
     }
@@ -160,6 +168,7 @@ struct ImmersiveView: View {
     }
 
     private func handleBodyDodgeCollision(_ event: CollisionEvents.Began) {
+        self.bodyEntity.playAudio(Sounds.Dodge.hit.audioResource)
         self.gameModel.missedCombo()
 
         // Remove dodges after collisions
@@ -174,6 +183,7 @@ struct ImmersiveView: View {
             return
         }
 
+        self.bodyEntity.playAudio(Sounds.Punch.missed.audioResource)
         self.gameModel.missedCombo()
 
         // Remove targets after collisions
@@ -268,7 +278,6 @@ struct ImmersiveView: View {
 
 #Preview {
     ImmersiveView()
-        .previewLayout(.sizeThatFits)
 }
 
 
@@ -282,7 +291,7 @@ extension ImmersiveView {
     }
 
     func simulateHandJointPosition(at position: SIMD3<Float>) {
-        let handJoint = HandJointEntity()
+        let handJoint = HandJointEntity(chirality: [.left, .right].randomElement() ?? .right)
         handJoint.position = position
         handJoint.position.z += 0.5
         self.spaceOrigin.addChild(handJoint)
