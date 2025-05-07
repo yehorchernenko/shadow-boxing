@@ -71,75 +71,47 @@ struct ImmersiveView: View {
               !targetEntity.shouldIgnoreCollision,
               let handJointEntity = event.entity(of: HandJointEntity.self) else { return }
         
-        //
         let animationDuration = 0.3
-        
+
         defer {
             Task { @MainActor in
-                try? await Task.sleep(for: .seconds(animationDuration))
+                try? await Task.sleep(nanoseconds: UInt64(animationDuration * 1_000_000_000))
                 targetEntity.removeFromParent()
 
                 #if targetEnvironment(simulator)
                 handJointEntity.removeFromParent()
                 #endif
             }
-        }
-        
-        // Extract needed information
-        let punch = targetEntity.configuration.punch
-        let handChirality = handJointEntity.chirality
-        let movements = handJointEntity.movementDirection
-        
-        // TODO: For simulator just ignore this
-        #if !targetEnvironment(simulator)
-        
-        // Check if the hand matches the punch's expected hand
-        let isCorrectHand = (punch.hand == .left && handChirality == .left) || 
-                           (punch.hand == .right && handChirality == .right)
-        
-        if !isCorrectHand {
-            // Wrong hand feedback
-            feedbackManager?.showText("Wrong hand!", color: .yellow)
-            return // Wrong hand, don't handle collision
-        }
-        
-        // Check if movement pattern matches expected punch type
-        let isCorrectMovement = matchesExpectedMovement(movements: movements, punchKind: punch.kind)
-        
-        if !isCorrectMovement {
-            // Wrong movement feedback
-            feedbackManager?.showText("Wrong punch!", color: .yellow)
-            return // Wrong movement, don't handle collision
-        }
-        #endif
-        
-        // All conditions met, handle the collision
-        self.bodyEntity.playAudio(Sounds.Punch.hit.audioResource)
-        self.gameModel.handlePunch(targetEntity.configuration.punch)
-        targetEntity.playSqueezeAnimation(duration: animationDuration)
-        
-        // Prevent further collisions with the same target.
-        // Produces crash - targetEntity.components.remove(CollisionComponent.self)
-        // Use a flag to ignore collisions instead.
-        targetEntity.shouldIgnoreCollision = true
 
-        Log.collision.info("Hand collision: \(targetEntity.name)")
-    }
-    
-    /// Determines if the movement pattern matches the expected punch type
-    private func matchesExpectedMovement(movements: Set<MovementDirection>, punchKind: Punch.Kind) -> Bool {
-        switch punchKind {
-        case .jab,  .cross:
-            // Jab is primarily a forward movement
-            // Cross is also primarily a forward movement, just with the rear hand
-            return movements.contains(.forward)
+            Log.collision.info("Hand collision: \(targetEntity.name)")
+        }
+        
+        let punchValidationResult = PunchValidator.validate(
+            punch: targetEntity.configuration.punch,
+            handChirality: handJointEntity.chirality, 
+            movements: handJointEntity.movementDirection
+        )
+        
+        // Handle validation result
+        switch punchValidationResult {
+        case .wrongHand:
+            feedbackManager?.showText("Wrong hand!", color: .red)
+            return
             
-        case .hook:
-            return movements.contains(.left) || movements.contains(.right)
+        case .wrongMovement:
+            feedbackManager?.showText("Wrong punch!", color: .red)
+            return
             
-        case .uppercut:
-            // Uppercut is primarily an upward movement
-            return movements.contains(.up)
+        case .valid:
+            // All conditions met, handle the collision
+            self.bodyEntity.playAudio(Sounds.Punch.hit.audioResource)
+            self.gameModel.handlePunch(targetEntity.configuration.punch)
+
+            targetEntity.playSqueezeAnimation(duration: animationDuration)
+            // Prevent further collisions with the same target.
+            // Produces crash - targetEntity.components.remove(CollisionComponent.self)
+            // Use a flag to ignore collisions instead.
+            targetEntity.shouldIgnoreCollision = true
         }
     }
 
