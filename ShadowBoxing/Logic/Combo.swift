@@ -45,9 +45,42 @@ struct Combo: Hashable {
             .punch(.leadHook(comboID: id))
         ])
     }
-
-    // jab-cross-uppercut
-    // cross-hook-cross
+    
+    // New combos
+    static var jabCrossUppercut: Combo {
+        let id = UUID()
+        return Combo(id: id, complexity: 0.5, steps: [
+            .punch(.jab(comboID: id)),
+            .delay(.shortBreak),
+            .punch(.cross(comboID: id)),
+            .delay(.shortBreak),
+            .punch(.rearUppercut(comboID: id))
+        ])
+    }
+    
+    static var crossHookCross: Combo {
+        let id = UUID()
+        return Combo(id: id, complexity: 0.6, steps: [
+            .punch(.cross(comboID: id)),
+            .delay(.shortBreak),
+            .punch(.leadHook(comboID: id)),
+            .delay(.shortBreak),
+            .punch(.cross(comboID: id))
+        ])
+    }
+    
+    static var jabLeadUppercutCrossHook: Combo {
+        let id = UUID()
+        return Combo(id: id, complexity: 0.8, steps: [
+            .punch(.jab(comboID: id)),
+            .delay(.shortBreak),
+            .punch(.leadUppercut(comboID: id)),
+            .delay(.shortBreak),
+            .punch(.cross(comboID: id)),
+            .delay(.shortBreak),
+            .punch(.leadHook(comboID: id))
+        ])
+    }
 
     /// Advanced
     static var jabCrossLeadHookRearUppercut: Combo {
@@ -62,9 +95,6 @@ struct Combo: Hashable {
             .punch(.rearUppercut(comboID: id))
         ])
     }
-    // Jab - Uppercut - Cross - Hook
-    // Double Jab - Cross - Lead Hook - Rear Uppercut
-    // Cross - Lead Uppercut - Rear Hook - Cross
 
     /// Don't forget to add new combos to the `allCombos` list
     static var allCombos: [Combo] {
@@ -73,6 +103,9 @@ struct Combo: Hashable {
             .jabCross,
             .jabJabCross,
             .jabCrossLeadHook,
+            .jabCrossUppercut,
+            .crossHookCross,
+            .jabLeadUppercutCrossHook,
             .jabCrossLeadHookRearUppercut,
         ]
     }
@@ -82,7 +115,7 @@ struct Combo: Hashable {
     }
 
     static var randomMediumCombo: Combo {
-        Combo.allCombos.filter { $0.complexity > 0.5 && $0.complexity < 0.5 }.random()
+        Combo.allCombos.filter { $0.complexity >= 0.2 && $0.complexity <= 0.5 }.random()
     }
     
     static var randomHardCombo: Combo {

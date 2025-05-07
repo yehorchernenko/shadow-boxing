@@ -58,35 +58,79 @@ struct Round {
         self.comboMultiplier = 1
     }
 
-    /// Should be adjusted by select level
+    /// Generate a round with steps based on the difficulty level
     static func generateSteps(level: Level) -> [RoundStep] {
-
-        // BUG: Combos start, easy and hard combos always have the same ID. This breaks logic for handling finished combos.
-        return [
-            .dodgeOrPunch,
-            .delay(.shortBreak),
-
-            .combo(.randomEasyCombo),
-            .delay(.longBreak),
-            .combo(.randomEasyCombo),
-            .delay(.longBreak),
-
-            .dodgeOrPunch,
-            .delay(.shortBreak),
-
-            .combo(.randomEasyCombo),
-            .delay(.longBreak),
-            .combo(.randomEasyCombo),
-            .delay(.longBreak),
-            .combo(.randomEasyCombo),
-            .delay(.longBreak),
-
-            .combo(.randomHardCombo),
-            .delay(.longBreak),
-            .combo(.randomHardCombo),
-            .delay(.longBreak),
-            .combo(.randomHardCombo),
-        ]
+        // Create empty steps array
+        var steps: [RoundStep] = []
+        
+        // Add an initial warmup section
+        if Bool.random() {
+            steps.append(.dodgeOrPunch)
+            steps.append(.delay(.shortBreak))
+        }
+        
+        // Select combos based on level complexity
+        switch level.complexity {
+        case .easy:
+            // Easy level: mostly basic combos with longer breaks
+            for _ in 1...10 {
+                steps.append(.combo(.randomEasyCombo))
+                steps.append(.delay(.longBreak))
+                
+                // Add occasional dodge for variety
+                if Bool.random() && Bool.random() && Bool.random() {
+                    steps.append(.dodgeOrPunch)
+                    steps.append(.delay(.shortBreak))
+                }
+            }
+            
+        case .medium:
+            // Medium level: mix of basic and medium combos
+            for _ in 1...15 {
+                if Bool.random() {
+                    steps.append(.combo(.randomEasyCombo))
+                } else {
+                    steps.append(.combo(.randomMediumCombo))
+                }
+                
+                // Medium level has a mix of break lengths
+                steps.append(.delay(Bool.random() ? .shortBreak : .longBreak))
+                
+                // Less frequent dodges
+                if Bool.random() && Bool.random() {
+                    steps.append(.dodgeOrPunch)
+                    steps.append(.delay(.shortBreak))
+                }
+            }
+            
+        case .hard:
+            // Hard level: more advanced combos with shorter breaks
+            for _ in 1...20 {
+                // Weighted random selection favoring harder combos
+                let random = Double.random(in: 0...1)
+                if random < 0.2 {
+                    // Basic (20% chance)
+                    steps.append(.combo(.randomEasyCombo))
+                } else if random < 0.6 {
+                    // Intermediate (40% chance)
+                    steps.append(.combo(.randomMediumCombo))
+                } else {
+                    // Advanced (40% chance)
+                    steps.append(.combo(.randomHardCombo))
+                }
+                
+                // Hard level mostly has short breaks
+                steps.append(.delay(.shortBreak))
+                
+                // Frequent dodges mixed in
+                if Bool.random() {
+                    steps.append(.dodgeOrPunch)
+                    steps.append(.delay(.shortBreak))
+                }
+            }
+        }
+        
+        return steps
     }
 }
 
@@ -116,5 +160,4 @@ extension Array where Element == RoundStep {
             }
         }
     }
-
 }
