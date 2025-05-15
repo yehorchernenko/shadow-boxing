@@ -12,11 +12,11 @@ struct Constants: Codable, Equatable {
     var hardSpeed: Double = 0.02
 
     // Mark: - Entities
-    var targetEntitySpawnHeight: Double = 1.7
+    var targetEntitySpawnHeight: Double = 1.5
     var targetEntitySpawnDistance: Double = -7
     var targetUserHeightOffest: Float = 0.6
 
-    var dodgeEntitySpawnHeight: Double = 1.5
+    var dodgeEntitySpawnHeight: Double = 1.9
     var dodgeEntitySpawnDistance: Double = -7
 
     // Mark: - Round

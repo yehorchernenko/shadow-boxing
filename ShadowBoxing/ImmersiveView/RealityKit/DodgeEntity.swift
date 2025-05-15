@@ -39,7 +39,7 @@ class DodgeEntity: Entity {
         
         // Height position shouldn't changed because it gives user ability to dodge the entity
         var targetPosition = toPosition
-        targetPosition.y = 1.5
+        targetPosition.y = Float(Constants.saved.dodgeEntitySpawnHeight)
         let directionVector = normalize(targetPosition - self.position)
         self.position += directionVector * self.speed
     }
